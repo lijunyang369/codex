@@ -1,0 +1,47 @@
+﻿from __future__ import annotations
+
+from src.domain import ActionPlan, AutomationAction, AutomationContext, BattleObservation, BattleState
+from src.policy.models import FixedActionRule, PolicyDecision
+
+
+class FixedRulePolicy:
+    def __init__(self, primary_rule: FixedActionRule) -> None:
+        self._primary_rule = primary_rule
+
+    def evaluate(
+        self,
+        observation: BattleObservation,
+        context: AutomationContext,
+    ) -> PolicyDecision:
+        if context.state != BattleState.ROUND_ACTIONABLE:
+            return PolicyDecision(
+                allowed=False,
+                reason=f"state {context.state.value} is not actionable",
+            )
+
+        if not observation.window_alive:
+            return PolicyDecision(allowed=False, reason="window is not alive")
+
+        if not observation.window_focused:
+            return PolicyDecision(allowed=False, reason="window is not focused")
+
+        if not observation.action_prompt_visible and not observation.skill_panel_visible:
+            return PolicyDecision(allowed=False, reason="action signals are missing")
+
+        return PolicyDecision(allowed=True, reason=self._primary_rule.reason)
+
+    def build_plan(
+        self,
+        observation: BattleObservation,
+        context: AutomationContext,
+    ) -> ActionPlan:
+        decision = self.evaluate(observation, context)
+        if not decision.allowed:
+            return ActionPlan(actions=(), reason=decision.reason)
+
+        action = AutomationAction(
+            action_type=self._primary_rule.action_type,
+            target=self._primary_rule.target,
+            parameters=dict(self._primary_rule.parameters),
+        )
+        return ActionPlan(actions=(action,), reason=decision.reason)
