@@ -1,0 +1,31 @@
+{
+  "templates": [
+    {
+      "id": "battle_ui",
+      "file": "battle_ui_placeholder.png",
+      "scene": "battle",
+      "region": "battle_main",
+      "threshold": 0.95,
+      "resolution": "1280x720",
+      "note": "Replace with a real battle UI template."
+    },
+    {
+      "id": "battle_action_prompt",
+      "file": "battle_action_prompt_placeholder.png",
+      "scene": "battle",
+      "region": "battle_prompt",
+      "threshold": 0.95,
+      "resolution": "1280x720",
+      "note": "Replace with a real action prompt template."
+    },
+    {
+      "id": "battle_skill_bar",
+      "file": "battle_skill_bar_placeholder.png",
+      "scene": "battle",
+      "region": "skill_bar",
+      "threshold": 0.95,
+      "resolution": "1280x720",
+      "note": "Replace with a real skill bar template."
+    }
+  ]
+}

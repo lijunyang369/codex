@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from PIL import Image, ImageGrab
 import win32con
@@ -10,6 +10,16 @@ from src.platform.models import Rect
 
 
 class PyWin32WindowGateway(WindowGateway):
+    def enumerate_windows(self) -> tuple[int, ...]:
+        handles: list[int] = []
+
+        def collect(handle: int, _extra: object) -> bool:
+            handles.append(int(handle))
+            return True
+
+        win32gui.EnumWindows(collect, None)
+        return tuple(handles)
+
     def is_window(self, handle: int) -> bool:
         return bool(win32gui.IsWindow(handle))
 

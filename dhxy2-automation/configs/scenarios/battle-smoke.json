@@ -1,0 +1,50 @@
+{
+  "scenario_id": "battle-smoke",
+  "initial_state": "ROUND_ACTIONABLE",
+  "primary_rule": {
+    "action_type": "CAST_SKILL",
+    "reason": "fixed_priority_skill",
+    "target": "enemy_front",
+    "parameters": {
+      "skill_point": [100, 200],
+      "target_point": [300, 400],
+      "confirm_point": [500, 600]
+    }
+  },
+  "regions": [
+    {
+      "name": "battle_main",
+      "rect": [0, 0, 300, 200],
+      "use_template_match": true,
+      "use_ocr": false
+    },
+    {
+      "name": "battle_prompt",
+      "rect": [20, 20, 220, 70],
+      "use_template_match": true,
+      "use_ocr": true
+    },
+    {
+      "name": "skill_bar",
+      "rect": [50, 250, 350, 320],
+      "use_template_match": true,
+      "use_ocr": false
+    }
+  ],
+  "mock_matches": {
+    "battle_main": [
+      {"template_id": "battle_ui", "confidence": 0.96}
+    ],
+    "battle_prompt": [
+      {"template_id": "battle_action_prompt", "confidence": 0.94}
+    ],
+    "skill_bar": [
+      {"template_id": "battle_skill_bar", "confidence": 0.92}
+    ]
+  },
+  "mock_ocr": {
+    "battle_prompt": [
+      {"text": "第1回合", "confidence": 0.90}
+    ]
+  }
+}

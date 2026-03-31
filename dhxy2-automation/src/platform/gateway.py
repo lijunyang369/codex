@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Protocol
 
@@ -8,6 +8,8 @@ from src.platform.models import Rect
 
 
 class WindowGateway(Protocol):
+    def enumerate_windows(self) -> tuple[int, ...]: ...
+
     def is_window(self, handle: int) -> bool: ...
 
     def is_window_visible(self, handle: int) -> bool: ...

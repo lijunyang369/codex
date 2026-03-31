@@ -1,0 +1,8 @@
+﻿{
+  "character_id": "mage-default",
+  "role_type": "mage",
+  "skill_set": [
+    "primary_attack"
+  ],
+  "default_target_rule": "enemy_front"
+}

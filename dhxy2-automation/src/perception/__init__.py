@@ -1,12 +1,29 @@
-﻿from .interfaces import OCRReader, TemplateMatcher
+from .interfaces import OCRReader, TemplateMatcher
 from .observation import ObservationBuilder, ObservationSignalConfig
 from .regions import RegionCropper, RegionSpec
+from .services import (
+    NullOCRReader,
+    NullTemplateMatcher,
+    OpenCvTemplateMatcher,
+    RegionRequest,
+    StaticOCRReader,
+    StaticTemplateMatcher,
+)
+from .template_catalog import TemplateCatalog, TemplateDefinition
 
 __all__ = [
     "OCRReader",
+    "NullOCRReader",
+    "NullTemplateMatcher",
     "ObservationBuilder",
     "ObservationSignalConfig",
+    "OpenCvTemplateMatcher",
     "RegionCropper",
+    "RegionRequest",
     "RegionSpec",
+    "StaticOCRReader",
+    "StaticTemplateMatcher",
+    "TemplateCatalog",
+    "TemplateDefinition",
     "TemplateMatcher",
 ]
