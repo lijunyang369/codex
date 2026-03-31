@@ -2,30 +2,30 @@
   "templates": [
     {
       "id": "battle_ui",
-      "file": "battle_ui_placeholder.png",
+      "file": "battle_ui_round_indicator.png",
       "scene": "battle",
       "region": "battle_main",
       "threshold": 0.95,
-      "resolution": "1280x720",
-      "note": "Replace with a real battle UI template."
+      "resolution": "1378x831",
+      "note": "Real battle round indicator captured from live client."
     },
     {
       "id": "battle_action_prompt",
-      "file": "battle_action_prompt_placeholder.png",
+      "file": "battle_action_menu.png",
       "scene": "battle",
       "region": "battle_prompt",
       "threshold": 0.95,
-      "resolution": "1280x720",
-      "note": "Replace with a real action prompt template."
+      "resolution": "1378x831",
+      "note": "Real battle action menu captured from live client."
     },
     {
       "id": "battle_skill_bar",
-      "file": "battle_skill_bar_placeholder.png",
+      "file": "battle_skill_bar_real.png",
       "scene": "battle",
       "region": "skill_bar",
       "threshold": 0.95,
-      "resolution": "1280x720",
-      "note": "Replace with a real skill bar template."
+      "resolution": "1378x831",
+      "note": "Real battle quick skill bar captured from live client."
     }
   ]
 }

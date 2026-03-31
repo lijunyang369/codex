@@ -1,6 +1,7 @@
-{
+﻿{
   "runs_root": "D:\\Codex\\dhxy2-automation\\runs\\artifacts",
   "dry_run": true,
   "require_foreground": true,
-  "template_catalog": "D:\\Codex\\dhxy2-automation\\resources\\templates\\battle\\catalog.json"
+  "template_catalog": "D:\\Codex\\dhxy2-automation\\resources\\templates\\battle\\catalog.json",
+  "button_calibration": "D:\\Codex\\dhxy2-automation\\configs\\ui\\button-calibration.json"
 }

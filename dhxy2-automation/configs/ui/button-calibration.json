@@ -1,0 +1,103 @@
+﻿{
+  "version": 3,
+  "nonbattle_toolbar": {
+    "baseline_y": 792,
+    "layout": {
+      "start_x": 870,
+      "step_x": 40,
+      "y": 792,
+      "notes": "normalized from confirmed live points; fixed-size toolbar buttons"
+    },
+    "buttons": {
+      "thousand_autumn_book": {
+        "label": "千秋册",
+        "status": "candidate",
+        "point": [870, 792]
+      },
+      "pet_panel": {
+        "label": "宝宝",
+        "status": "confirmed",
+        "point": [910, 792],
+        "notes": "confirmed by live UI feedback: prompt says no pet available"
+      },
+      "bag_panel": {
+        "label": "道具",
+        "status": "confirmed",
+        "point": [950, 792],
+        "notes": "confirmed by screenshot: item panel opened"
+      },
+      "team_panel": {
+        "label": "组队",
+        "status": "confirmed",
+        "point": [990, 792],
+        "notes": "normalized to layout grid; team popup was confirmed at adjacent point"
+      },
+      "attack_mode": {
+        "label": "攻击",
+        "status": "candidate",
+        "point": [1030, 792]
+      },
+      "ingot_panel": {
+        "label": "元宝",
+        "status": "candidate",
+        "point": [1070, 792]
+      },
+      "market_panel": {
+        "label": "商会",
+        "status": "candidate",
+        "point": [1110, 792]
+      },
+      "skill_panel": {
+        "label": "技能",
+        "status": "confirmed",
+        "point": [1150, 792],
+        "notes": "confirmed by screenshot: skill panel opened"
+      },
+      "mount_panel": {
+        "label": "坐骑",
+        "status": "confirmed",
+        "point": [1190, 792],
+        "notes": "normalized to layout grid; mount popup was confirmed at adjacent point"
+      },
+      "task_panel": {
+        "label": "任务",
+        "status": "candidate",
+        "point": [1230, 792]
+      },
+      "friend_panel": {
+        "label": "好友",
+        "status": "candidate",
+        "point": [1270, 792]
+      },
+      "guild_panel": {
+        "label": "帮派",
+        "status": "candidate",
+        "point": [1310, 792]
+      },
+      "system_panel": {
+        "label": "系统",
+        "status": "candidate",
+        "point": [1350, 792]
+      }
+    }
+  },
+  "battle_command_bar": {
+    "buttons": {
+      "defend": {
+        "label": "防御",
+        "status": "pending",
+        "point": [1252, 348]
+      },
+      "item": {
+        "label": "道具",
+        "status": "pending",
+        "point": [1252, 297]
+      },
+      "pet": {
+        "label": "宝宝",
+        "status": "pending",
+        "point": [1146, 783]
+      }
+    }
+  }
+}

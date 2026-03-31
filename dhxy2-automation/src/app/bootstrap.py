@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from typing import Any
 from src.app.observation_provider import DefaultObservationProvider, DefaultObservationProviderConfig
 from src.app.service import BattleAutomationApp
 from src.domain import ActionType, AutomationContext, BattleState, MatchResult, OCRResult
-from src.executor import ActionExecutor, InputGateway
+from src.executor import ActionExecutor, ActionTranslator, ButtonCalibration, InputGateway
 from src.perception import (
     NullOCRReader,
     NullTemplateMatcher,
@@ -98,6 +98,7 @@ def build_app(
         ocr_reader=ocr_reader,
         config=DefaultObservationProviderConfig(regions=regions),
     )
+    executor = _build_executor(env_config)
 
     return BattleAutomationApp(
         context=context,
@@ -105,7 +106,7 @@ def build_app(
         observation_provider=observation_provider,
         state_machine=BattleStateMachine(),
         policy=policy,
-        executor=ActionExecutor(),
+        executor=executor,
         runtime_session=runtime_session,
         input_gateway=input_gateway or NoOpInputGateway(),
     )
@@ -129,6 +130,16 @@ def build_app_from_configs(
         )
     )
     return build_app(paths=paths, window_session=window_session, input_gateway=input_gateway)
+
+
+def _build_executor(env_config: dict[str, Any]) -> ActionExecutor:
+    button_calibration_path = env_config.get("button_calibration")
+    button_calibration = None
+    if button_calibration_path:
+        calibration_file = Path(button_calibration_path)
+        if calibration_file.exists():
+            button_calibration = ButtonCalibration.load(calibration_file)
+    return ActionExecutor(translator=ActionTranslator(button_calibration=button_calibration))
 
 
 def _build_template_matcher(scenario_config: dict[str, Any], env_config: dict[str, Any], dry_run: bool):

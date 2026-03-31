@@ -6,27 +6,27 @@
     "reason": "fixed_priority_skill",
     "target": "enemy_front",
     "parameters": {
-      "skill_point": [100, 200],
-      "target_point": [300, 400],
-      "confirm_point": [500, 600]
+      "skill_point": [1095, 724],
+      "target_point": [1035, 442],
+      "confirm_point": [1264, 796]
     }
   },
   "regions": [
     {
       "name": "battle_main",
-      "rect": [0, 0, 300, 200],
+      "rect": [0, 40, 140, 170],
       "use_template_match": true,
       "use_ocr": false
     },
     {
       "name": "battle_prompt",
-      "rect": [20, 20, 220, 70],
+      "rect": [1170, 245, 1320, 530],
       "use_template_match": true,
-      "use_ocr": true
+      "use_ocr": false
     },
     {
       "name": "skill_bar",
-      "rect": [50, 250, 350, 320],
+      "rect": [950, 680, 1378, 831],
       "use_template_match": true,
       "use_ocr": false
     }
@@ -42,9 +42,5 @@
       {"template_id": "battle_skill_bar", "confidence": 0.92}
     ]
   },
-  "mock_ocr": {
-    "battle_prompt": [
-      {"text": "第1回合", "confidence": 0.90}
-    ]
-  }
+  "mock_ocr": {}
 }

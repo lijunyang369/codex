@@ -1,9 +1,11 @@
 ﻿from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 
+from src.executor import ActionExecutor, ActionTranslationError, ActionTranslator, ButtonCalibration
 from src.domain import ActionType, AutomationAction
-from src.executor import ActionExecutor, ActionTranslationError
 from src.platform import Rect, WindowSession
 
 
@@ -53,9 +55,20 @@ class FakeInputGateway:
         self.operations.append(("wait", seconds))
 
 
+class ButtonCalibrationTestCase(unittest.TestCase):
+    def test_load_and_resolve_button_point(self) -> None:
+        root = Path('D:/Codex/dhxy2-automation')
+        calibration = ButtonCalibration.load(root / 'configs' / 'ui' / 'button-calibration.json')
+
+        self.assertTrue(calibration.has('nonbattle_toolbar.pet_panel'))
+        self.assertEqual((910, 792), calibration.resolve('nonbattle_toolbar.pet_panel'))
+
+
 class ActionExecutorTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.executor = ActionExecutor()
+        root = Path('D:/Codex/dhxy2-automation')
+        calibration = ButtonCalibration.load(root / 'configs' / 'ui' / 'button-calibration.json')
+        self.executor = ActionExecutor(translator=ActionTranslator(button_calibration=calibration))
         self.window_session = WindowSession(handle=1001, gateway=FakeWindowGateway())
         self.input_gateway = FakeInputGateway()
 
@@ -77,6 +90,17 @@ class ActionExecutorTestCase(unittest.TestCase):
             self.input_gateway.operations,
         )
 
+    def test_click_ui_button_executes_calibrated_point(self) -> None:
+        action = AutomationAction(
+            action_type=ActionType.CLICK_UI_BUTTON,
+            parameters={"button_ref": "nonbattle_toolbar.bag_panel"},
+        )
+
+        result = self.executor.execute(action, self.window_session, self.input_gateway)
+
+        self.assertTrue(result.success)
+        self.assertEqual([("click", (950, 792))], self.input_gateway.operations)
+
     def test_recover_action_focuses_and_waits(self) -> None:
         action = AutomationAction(
             action_type=ActionType.RECOVER,
@@ -97,3 +121,4 @@ class ActionExecutorTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
