@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from src.domain.profile_models import CharacterProfile
+
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -102,6 +104,7 @@ class AutomationContext:
     last_observed_state: BattleState | None = None
     current_plan: ActionPlan | None = None
     last_action_at: datetime | None = None
+    character_profile: CharacterProfile | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

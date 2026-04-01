@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
+
+from PIL import Image
 
 from src.perception import OpenCvTemplateMatcher, TemplateCatalog
 from src.platform import FrameCapture
-from PIL import Image
+from tests.smoke._paths import RESOURCES_ROOT, RUNS_ROOT
 
 
 class LiveTemplatePathTestCase(unittest.TestCase):
     def test_catalog_templates_match_manual_battle_capture(self) -> None:
-        root = Path("D:/Codex/dhxy2-automation")
-        catalog = TemplateCatalog.load(root / "resources" / "templates" / "battle" / "catalog.json")
+        catalog = TemplateCatalog.load(RESOURCES_ROOT / "templates" / "battle" / "catalog.json")
         matcher = OpenCvTemplateMatcher(catalog)
-        frame = FrameCapture(image=Image.open(root / "runs" / "artifacts" / "battle-capture-focused.png"))
+        frame = FrameCapture(image=Image.open(RUNS_ROOT / "artifacts" / "battle-capture-focused.png"))
 
         main_matches = matcher.match(frame, "battle_main")
         prompt_matches = matcher.match(frame, "battle_prompt")

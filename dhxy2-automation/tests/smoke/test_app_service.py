@@ -1,17 +1,18 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.app import BattleAutomationApp
+from src.app import BattleAutomationApp, CharacterProfileLoader
 from src.domain import ActionType, AutomationContext, BattleObservation, BattleState
 from src.executor import ActionExecutor
 from src.platform import Rect, WindowSession
 from src.policy import FixedActionRule, FixedRulePolicy
 from src.runtime import RuntimeSession
 from src.state_machine import BattleStateMachine
+from tests.smoke._paths import CONFIGS_ROOT
 
 
 class FakeObservationProvider:
@@ -83,6 +84,9 @@ class BattleAutomationAppTestCase(unittest.TestCase):
                 instance_id="instance-1",
                 battle_session_id="battle-1",
                 state=BattleState.ROUND_ACTIONABLE,
+            )
+            context.character_profile = CharacterProfileLoader().load(
+                CONFIGS_ROOT / "characters" / "mage-default.json"
             )
             runtime_session = RuntimeSession.create(Path(temp_dir), context)
             app = BattleAutomationApp(

@@ -75,6 +75,14 @@ class Win32SendInputGateway:
 
     def click(self, x: int, y: int) -> None:
         screen_x, screen_y = _client_to_screen(x, y)
+        self._click_screen(screen_x, screen_y)
+        self.operations.append(("click", (x, y)))
+
+    def click_screen(self, screen_x: int, screen_y: int) -> None:
+        self._click_screen(screen_x, screen_y)
+        self.operations.append(("click_screen", (int(screen_x), int(screen_y))))
+
+    def _click_screen(self, screen_x: int, screen_y: int) -> None:
         absolute_x, absolute_y = _to_absolute(screen_x, screen_y)
         events = (
             INPUT(
@@ -112,7 +120,6 @@ class Win32SendInputGateway:
             ),
         )
         _send_inputs(events)
-        self.operations.append(("click", (x, y)))
 
     def press_key(self, key: str) -> None:
         vk = _to_vk(key)

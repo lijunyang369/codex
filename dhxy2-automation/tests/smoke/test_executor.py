@@ -1,12 +1,12 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
-import tempfile
+import json
 import unittest
-from pathlib import Path
 
-from src.executor import ActionExecutor, ActionTranslationError, ActionTranslator, ButtonCalibration
 from src.domain import ActionType, AutomationAction
+from src.executor import ActionExecutor, ActionTranslationError, ActionTranslator, ButtonCalibration
 from src.platform import Rect, WindowSession
+from tests.smoke._paths import CONFIGS_ROOT
 
 
 class FakeWindowGateway:
@@ -57,17 +57,19 @@ class FakeInputGateway:
 
 class ButtonCalibrationTestCase(unittest.TestCase):
     def test_load_and_resolve_button_point(self) -> None:
-        root = Path('D:/Codex/dhxy2-automation')
-        calibration = ButtonCalibration.load(root / 'configs' / 'ui' / 'button-calibration.json')
+        calibration_path = CONFIGS_ROOT / "ui" / "button-calibration.json"
+        calibration = ButtonCalibration.load(calibration_path)
+        payload = json.loads(calibration_path.read_text(encoding="utf-8-sig"))
 
-        self.assertTrue(calibration.has('nonbattle_toolbar.pet_panel'))
-        self.assertEqual((910, 792), calibration.resolve('nonbattle_toolbar.pet_panel'))
+        self.assertTrue(calibration.has("nonbattle_toolbar.pet_panel"))
+        self.assertEqual((910, 802), calibration.resolve("nonbattle_toolbar.pet_panel"))
+        self.assertEqual(802, payload["nonbattle_toolbar"]["baseline_y"])
+        self.assertEqual(802, payload["nonbattle_toolbar"]["layout"]["y"])
 
 
 class ActionExecutorTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        root = Path('D:/Codex/dhxy2-automation')
-        calibration = ButtonCalibration.load(root / 'configs' / 'ui' / 'button-calibration.json')
+        calibration = ButtonCalibration.load(CONFIGS_ROOT / "ui" / "button-calibration.json")
         self.executor = ActionExecutor(translator=ActionTranslator(button_calibration=calibration))
         self.window_session = WindowSession(handle=1001, gateway=FakeWindowGateway())
         self.input_gateway = FakeInputGateway()
@@ -99,7 +101,7 @@ class ActionExecutorTestCase(unittest.TestCase):
         result = self.executor.execute(action, self.window_session, self.input_gateway)
 
         self.assertTrue(result.success)
-        self.assertEqual([("click", (950, 792))], self.input_gateway.operations)
+        self.assertEqual([("click", (950, 802))], self.input_gateway.operations)
 
     def test_recover_action_focuses_and_waits(self) -> None:
         action = AutomationAction(
@@ -121,4 +123,3 @@ class ActionExecutorTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

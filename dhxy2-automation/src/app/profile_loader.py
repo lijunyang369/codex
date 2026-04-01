@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from src.app.config_refs import configs_root, resolve_config_reference
 from src.domain import (
     CharacterKnowledgeRefs,
     CharacterProfile,
@@ -16,7 +17,8 @@ from src.domain import (
 
 class CharacterProfileLoader:
     def load(self, path: Path) -> CharacterProfile:
-        payload = json.loads(path.read_text(encoding="utf-8-sig"))
+        resolved_path = Path(path).resolve()
+        payload = json.loads(resolved_path.read_text(encoding="utf-8-sig"))
         knowledge_refs = CharacterKnowledgeRefs(
             character_system=payload.get("knowledge_refs", {}).get("character_system"),
             pet_system=payload.get("knowledge_refs", {}).get("pet_system"),
@@ -27,8 +29,8 @@ class CharacterProfileLoader:
             skill_set=tuple(str(item) for item in payload.get("skill_set", ())),
             default_target_rule=str(payload["default_target_rule"]),
             knowledge_refs=knowledge_refs,
-            character_system=self._load_character_system(path, knowledge_refs.character_system),
-            pet_system=self._load_pet_system(path, knowledge_refs.pet_system),
+            character_system=self._load_character_system(resolved_path, knowledge_refs.character_system),
+            pet_system=self._load_pet_system(resolved_path, knowledge_refs.pet_system),
         )
 
     def _load_character_system(
@@ -84,5 +86,6 @@ class CharacterProfileLoader:
         )
 
     def _load_json(self, base_path: Path, relative_ref: str) -> dict[str, Any]:
-        resolved = (base_path.parent / relative_ref).resolve()
+        knowledge_root = configs_root(base_path) / "knowledge"
+        resolved = resolve_config_reference(base_path, relative_ref, allowed_root=knowledge_root)
         return json.loads(resolved.read_text(encoding="utf-8-sig"))

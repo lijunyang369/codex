@@ -1,10 +1,12 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import unittest
 from datetime import datetime, timezone
 
+from src.app import CharacterProfileLoader
 from src.domain import ActionType, AutomationContext, BattleObservation, BattleState
-from src.policy import FixedActionRule, FixedRulePolicy
+from src.policy import FixedActionRule, FixedRulePolicy, PolicyDecisionError, require_character_profile
+from tests.smoke._paths import CONFIGS_ROOT
 
 
 def build_observation(**overrides: object) -> BattleObservation:
@@ -43,6 +45,9 @@ class FixedRulePolicyTestCase(unittest.TestCase):
             battle_session_id="battle-1",
             state=BattleState.ROUND_ACTIONABLE,
         )
+        self.context.character_profile = CharacterProfileLoader().load(
+            CONFIGS_ROOT / "characters" / "mage-default.json"
+        )
 
     def test_build_plan_returns_single_action_when_actionable(self) -> None:
         observation = build_observation()
@@ -70,6 +75,41 @@ class FixedRulePolicyTestCase(unittest.TestCase):
 
         self.assertTrue(plan.is_empty())
         self.assertEqual("window is not focused", plan.reason)
+
+    def test_build_plan_returns_empty_when_character_profile_is_missing(self) -> None:
+        self.context.character_profile = None
+        observation = build_observation()
+
+        plan = self.policy.build_plan(observation, self.context)
+
+        self.assertTrue(plan.is_empty())
+        self.assertEqual("character profile is missing", plan.reason)
+
+    def test_build_plan_falls_back_to_profile_default_target_when_rule_target_is_missing(self) -> None:
+        policy = FixedRulePolicy(
+            FixedActionRule(
+                action_type=ActionType.CAST_SKILL,
+                reason="use_default_target_rule",
+                target=None,
+                parameters={"skill_point": (100, 200)},
+            )
+        )
+        observation = build_observation()
+
+        plan = policy.build_plan(observation, self.context)
+
+        self.assertFalse(plan.is_empty())
+        self.assertEqual("enemy_front", plan.actions[0].target)
+
+    def test_require_character_profile_returns_bound_instance_profile(self) -> None:
+        resolved = require_character_profile(self.context)
+
+        self.assertEqual("mage-default", resolved.character_id)
+
+    def test_require_character_profile_raises_when_instance_has_no_profile(self) -> None:
+        self.context.character_profile = None
+        with self.assertRaises(PolicyDecisionError):
+            require_character_profile(self.context)
 
 
 if __name__ == "__main__":

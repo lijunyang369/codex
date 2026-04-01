@@ -16,11 +16,26 @@ class ButtonDetection:
     area: int
 
 
+@dataclass(frozen=True)
+class BattleCommandCalibrationSuggestion:
+    layout: dict[str, object]
+    buttons: dict[str, dict[str, object]]
+
+
 def detect_battle_command_buttons(
     client_rgb: Image.Image,
     names: list[str] | tuple[str, ...],
+    action_menu_template: Image.Image | None = None,
+    min_menu_confidence: float = 0.95,
 ) -> tuple[ButtonDetection, ...]:
-    boxes = _detect_button_boxes(client_rgb)
+    template_boxes = _detect_by_action_menu_template(
+        client_rgb=client_rgb,
+        button_count=len(names),
+        action_menu_template=action_menu_template,
+        min_menu_confidence=min_menu_confidence,
+    )
+    boxes = template_boxes if template_boxes else _detect_button_boxes_by_color(client_rgb)
+
     detections: list[ButtonDetection] = []
     for idx, (x1, y1, x2, y2, area) in enumerate(boxes):
         center = ((x1 + x2) // 2, (y1 + y2) // 2)
@@ -37,7 +52,40 @@ def detect_battle_command_buttons(
     return tuple(detections)
 
 
-def _detect_button_boxes(client_rgb: Image.Image) -> list[tuple[int, int, int, int, int]]:
+def _detect_by_action_menu_template(
+    client_rgb: Image.Image,
+    button_count: int,
+    action_menu_template: Image.Image | None,
+    min_menu_confidence: float,
+) -> list[tuple[int, int, int, int, int]]:
+    if action_menu_template is None or button_count <= 0:
+        return []
+
+    frame_rgb = client_rgb.convert("RGB")
+    template_rgb = action_menu_template.convert("RGB")
+    frame_gray = cv2.cvtColor(np.array(frame_rgb), cv2.COLOR_RGB2GRAY)
+    template_gray = cv2.cvtColor(np.array(template_rgb), cv2.COLOR_RGB2GRAY)
+
+    result = cv2.matchTemplate(frame_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+    _min_val, max_val, _min_loc, max_loc = cv2.minMaxLoc(result)
+    if float(max_val) < min_menu_confidence:
+        return []
+
+    menu_x, menu_y = max_loc
+    menu_width, menu_height = template_rgb.size
+    row_height = menu_height / button_count
+    boxes: list[tuple[int, int, int, int, int]] = []
+    for index in range(button_count):
+        top = int(round(menu_y + (index * row_height)))
+        bottom = int(round(menu_y + ((index + 1) * row_height)))
+        left = menu_x
+        right = menu_x + menu_width
+        area = max(0, (right - left) * (bottom - top))
+        boxes.append((left, top, right, bottom, area))
+    return boxes
+
+
+def _detect_button_boxes_by_color(client_rgb: Image.Image) -> list[tuple[int, int, int, int, int]]:
     frame = np.array(client_rgb.convert("RGB"))
     height, width, _channels = frame.shape
     roi_x1, roi_x2 = max(0, width - 140), width
@@ -95,3 +143,42 @@ def _detect_button_boxes(client_rgb: Image.Image) -> list[tuple[int, int, int, i
         filtered.append(item)
 
     return filtered
+
+
+def build_battle_command_calibration_suggestion(
+    detections: tuple[ButtonDetection, ...],
+    labels_by_name: dict[str, str] | None = None,
+) -> BattleCommandCalibrationSuggestion:
+    labels = labels_by_name or {}
+    if not detections:
+        return BattleCommandCalibrationSuggestion(
+            layout={"notes": "no detections"},
+            buttons={},
+        )
+
+    center_x_values = [entry.center[0] for entry in detections]
+    center_y_values = [entry.center[1] for entry in detections]
+    inferred_steps = [
+        center_y_values[index + 1] - center_y_values[index]
+        for index in range(len(center_y_values) - 1)
+    ]
+    step_y = round(sum(inferred_steps) / len(inferred_steps)) if inferred_steps else 0
+
+    buttons: dict[str, dict[str, object]] = {}
+    for entry in detections:
+        buttons[entry.name] = {
+            "label": labels.get(entry.name, entry.name),
+            "status": "candidate",
+            "point": [entry.center[0], entry.center[1]],
+            "notes": "template-detected candidate from battle_action_menu",
+        }
+
+    return BattleCommandCalibrationSuggestion(
+        layout={
+            "x": round(sum(center_x_values) / len(center_x_values)),
+            "start_y": center_y_values[0],
+            "step_y": step_y,
+            "notes": "template-detected from battle_action_menu; review before promoting status",
+        },
+        buttons=buttons,
+    )

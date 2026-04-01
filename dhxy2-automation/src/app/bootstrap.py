@@ -1,13 +1,17 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from src.app.account_loader import AccountBindingLoader
+from src.app.config_refs import configs_root, resolve_config_reference
 from src.app.observation_provider import DefaultObservationProvider, DefaultObservationProviderConfig
+from src.app.profile_loader import CharacterProfileLoader
 from src.app.service import BattleAutomationApp
-from src.domain import ActionType, AutomationContext, BattleState, MatchResult, OCRResult
+from src.app.window_binding import resolve_window_session
+from src.domain import AccountBinding, ActionType, AutomationContext, BattleState, MatchResult, OCRResult
 from src.executor import ActionExecutor, ActionTranslator, ButtonCalibration, InputGateway
 from src.perception import (
     NullOCRReader,
@@ -22,7 +26,6 @@ from src.platform import PyWin32WindowGateway, WindowSession
 from src.policy import FixedActionRule, FixedRulePolicy
 from src.runtime import RuntimeSession
 from src.state_machine import BattleStateMachine
-from src.app.window_binding import resolve_window_session
 
 
 @dataclass(frozen=True)
@@ -58,17 +61,22 @@ def build_app(
 ) -> BattleAutomationApp:
     loader = JsonConfigLoader()
     env_config = loader.load(paths.env_config)
-    account_config = loader.load(paths.account_config)
+    account_binding = AccountBindingLoader().load(paths.account_config)
     scenario_config = loader.load(paths.scenario_config)
 
     initial_state = BattleState(scenario_config.get("initial_state", "OUT_OF_BATTLE"))
     context = AutomationContext(
-        instance_id=account_config["instance_id"],
+        instance_id=account_binding.instance_id,
         battle_session_id=f"{scenario_config['scenario_id']}-session",
         state=initial_state,
         previous_stable_state=initial_state,
         previous_state=initial_state,
     )
+    character_profile = _load_character_profile(paths.account_config, account_binding)
+    if character_profile is not None:
+        context.character_profile = character_profile
+        context.metadata["character_profile"] = character_profile.to_dict()
+
     runtime_session = RuntimeSession.create(Path(env_config["runs_root"]), context)
 
     primary_rule = scenario_config["primary_rule"]
@@ -130,6 +138,19 @@ def _build_executor(env_config: dict[str, Any]) -> ActionExecutor:
         if calibration_file.exists():
             button_calibration = ButtonCalibration.load(calibration_file)
     return ActionExecutor(translator=ActionTranslator(button_calibration=button_calibration))
+
+
+def _load_character_profile(account_config_path: Path, account_binding: AccountBinding):
+    character_config_ref = account_binding.character_config_ref
+    if not character_config_ref:
+        return None
+    character_root = configs_root(account_config_path) / "characters"
+    character_config_path = resolve_config_reference(
+        account_config_path,
+        str(character_config_ref),
+        allowed_root=character_root,
+    )
+    return CharacterProfileLoader().load(character_config_path)
 
 
 def _build_template_matcher(scenario_config: dict[str, Any], env_config: dict[str, Any], dry_run: bool):

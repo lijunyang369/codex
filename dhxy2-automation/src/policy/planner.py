@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from src.domain import ActionPlan, AutomationAction, AutomationContext, BattleObservation, BattleState
+from src.policy.context_access import require_character_profile
 from src.policy.models import FixedActionRule, PolicyDecision
 
 
@@ -13,6 +14,9 @@ class FixedRulePolicy:
         observation: BattleObservation,
         context: AutomationContext,
     ) -> PolicyDecision:
+        if context.character_profile is None:
+            return PolicyDecision(allowed=False, reason="character profile is missing")
+
         if context.state != BattleState.ROUND_ACTIONABLE:
             return PolicyDecision(
                 allowed=False,
@@ -39,9 +43,10 @@ class FixedRulePolicy:
         if not decision.allowed:
             return ActionPlan(actions=(), reason=decision.reason)
 
+        profile = require_character_profile(context)
         action = AutomationAction(
             action_type=self._primary_rule.action_type,
-            target=self._primary_rule.target,
+            target=self._primary_rule.target or profile.default_target_rule,
             parameters=dict(self._primary_rule.parameters),
         )
         return ActionPlan(actions=(action,), reason=decision.reason)
