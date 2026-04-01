@@ -43,7 +43,7 @@ class FakeWindowGateway:
 class FakeTemplateMatcher:
     def match(self, frame: FrameCapture, region_name: str, rect: Rect | None = None) -> tuple[MatchResult, ...]:
         payload = {
-            "battle_main": (MatchResult(template_id="battle_ui", confidence=0.96, region_name=region_name),),
+            "battle_auto_button": (MatchResult(template_id="battle_ui", confidence=0.96, region_name=region_name),),
             "battle_prompt": (MatchResult(template_id="battle_action_prompt", confidence=0.94, region_name=region_name),),
             "skill_bar": (MatchResult(template_id="battle_skill_bar", confidence=0.92, region_name=region_name),),
         }
@@ -65,6 +65,7 @@ class DefaultObservationProviderTestCase(unittest.TestCase):
             config=DefaultObservationProviderConfig(
                 regions=(
                     RegionRequest(name="battle_main", rect=Rect(0, 0, 100, 100), use_template_match=True),
+                    RegionRequest(name="battle_auto_button", rect=Rect(80, 80, 160, 120), use_template_match=True),
                     RegionRequest(name="battle_prompt", rect=Rect(10, 10, 110, 50), use_template_match=True, use_ocr=True),
                     RegionRequest(name="skill_bar", rect=Rect(20, 60, 140, 100), use_template_match=True),
                 )

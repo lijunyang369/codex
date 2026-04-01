@@ -17,3 +17,16 @@ class FixedActionRule:
 class PolicyDecision:
     allowed: bool
     reason: str
+
+
+@dataclass(frozen=True)
+class ScriptedActionRule:
+    action_type: ActionType
+    target: str | None = None
+    parameters: dict[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ScriptedRoundRule:
+    reason: str
+    actions: tuple[ScriptedActionRule, ...]

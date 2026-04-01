@@ -96,26 +96,14 @@
     "character_battle_command_bar.escape": {
       "label": "逃跑",
       "semantic_action": "queue_escape_action",
-      "verification_status": "candidate",
+      "verification_status": "ready",
       "before_any_of": [
         "battle_action_prompt"
       ],
       "after_none_of": [
         "battle_action_prompt"
       ],
-      "notes": "角色战斗主指令栏中的逃跑入口。"
-    },
-    "character_battle_command_bar.pet": {
-      "label": "宝宝",
-      "semantic_action": "open_pet_quick_panel",
-      "verification_status": "blocked_by_missing_template",
-      "before_any_of": [
-        "battle_action_prompt"
-      ],
-      "after_any_of": [
-        "battle_pet_panel"
-      ],
-      "notes": "角色战斗额外包含宝宝快捷指令。"
+      "notes": "角色战斗主指令栏中的逃跑入口，确认信号同样使用战斗指令栏消失。"
     },
     "pet_battle_command_bar.spell": {
       "label": "法术",
@@ -252,14 +240,14 @@
     "battle_command_bar.escape": {
       "label": "逃跑",
       "semantic_action": "queue_escape_action",
-      "verification_status": "candidate",
+      "verification_status": "ready",
       "before_any_of": [
         "battle_action_prompt"
       ],
       "after_none_of": [
         "battle_action_prompt"
       ],
-      "notes": "行为可能与防御相似，但尚未做实测确认。"
+      "notes": "旧兼容键下的逃跑入口，确认信号使用战斗指令栏消失。"
     },
     "battle_command_bar.pet": {
       "label": "宝宝",

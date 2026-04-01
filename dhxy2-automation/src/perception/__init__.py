@@ -1,3 +1,4 @@
+from .battle_recognizers import BattleRecognitionSuite
 from .battle_command_profiles import BattleCommandProfile, BattleCommandProfileCatalog
 from .battle_button_semantics import (
     BattleButtonSemanticCatalog,
@@ -12,8 +13,10 @@ from .button_detection import (
 )
 from .interfaces import OCRReader, TemplateMatcher
 from .observation import ObservationBuilder, ObservationSignalConfig
+from .recognizer_models import RecognitionModuleResult, RecognitionModuleSpec, RecognitionSnapshot
 from .regions import RegionCropper, RegionSpec
 from .services import (
+    BattleRoundOCRReader,
     NullOCRReader,
     NullTemplateMatcher,
     OpenCvTemplateMatcher,
@@ -25,10 +28,12 @@ from .template_catalog import TemplateCatalog, TemplateDefinition
 
 __all__ = [
     "ButtonDetection",
+    "BattleRecognitionSuite",
     "BattleCommandProfile",
     "BattleCommandProfileCatalog",
     "BattleButtonSemanticCatalog",
     "BattleButtonSemanticRule",
+    "BattleRoundOCRReader",
     "BattleCommandCalibrationSuggestion",
     "detect_battle_command_buttons",
     "build_battle_command_calibration_suggestion",
@@ -44,6 +49,9 @@ __all__ = [
     "StaticOCRReader",
     "StaticTemplateMatcher",
     "SemanticVerificationResult",
+    "RecognitionModuleResult",
+    "RecognitionModuleSpec",
+    "RecognitionSnapshot",
     "TemplateCatalog",
     "TemplateDefinition",
     "TemplateMatcher",

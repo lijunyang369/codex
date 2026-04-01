@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime, timezone
 
 from src.app import CharacterProfileLoader
-from src.domain import ActionType, AutomationContext, BattleObservation, BattleState
+from src.domain import ActionType, AutomationContext, BattleObservation, BattleState, OCRResult
 from src.policy import FixedActionRule, FixedRulePolicy, PolicyDecisionError, require_character_profile
 from tests.smoke._paths import CONFIGS_ROOT
 
@@ -21,6 +21,7 @@ def build_observation(**overrides: object) -> BattleObservation:
         "frame_timestamp": datetime.now(timezone.utc),
         "frame_hash": "frame-hash",
         "confidence_summary": 0.95,
+        "ocr_texts": (OCRResult(text="第1回合", confidence=0.95, region_name="battle_main"),),
     }
     payload.update(overrides)
     return BattleObservation(**payload)

@@ -15,7 +15,7 @@ class LiveTemplatePathTestCase(unittest.TestCase):
         matcher = OpenCvTemplateMatcher(catalog)
         frame = FrameCapture(image=Image.open(RUNS_ROOT / "artifacts" / "battle-capture-focused.png"))
 
-        main_matches = matcher.match(frame, "battle_main")
+        main_matches = matcher.match(frame, "battle_auto_button")
         prompt_matches = matcher.match(frame, "battle_prompt")
         skill_matches = matcher.match(frame, "skill_bar")
 

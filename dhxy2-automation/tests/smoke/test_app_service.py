@@ -5,30 +5,29 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.app import BattleAutomationApp, CharacterProfileLoader
-from src.domain import ActionType, AutomationContext, BattleObservation, BattleState
-from src.executor import ActionExecutor
+from src.app import ActionFeedbackVerifier, BattleAutomationApp, CharacterProfileLoader
+from src.domain import ActionType, AutomationContext, BattleObservation, BattleState, MatchResult, OCRResult
+from src.executor import ActionExecutor, ActionTranslator, ButtonCalibration
 from src.platform import Rect, WindowSession
 from src.policy import FixedActionRule, FixedRulePolicy
+from src.perception import BattleButtonSemanticCatalog
 from src.runtime import RuntimeSession
 from src.state_machine import BattleStateMachine
 from tests.smoke._paths import CONFIGS_ROOT
 
 
 class FakeObservationProvider:
+    def __init__(self, observations: list[BattleObservation] | None = None) -> None:
+        self._observations = observations or [build_observation("battle_ui", "battle_action_prompt", "battle_skill_bar")]
+        self._index = 0
+
     def observe(self, window_session: WindowSession) -> BattleObservation:
-        return BattleObservation(
-            battle_ui_visible=True,
-            action_prompt_visible=True,
-            skill_panel_visible=True,
-            target_select_visible=False,
-            settlement_visible=False,
-            window_alive=True,
-            window_focused=True,
-            frame_timestamp=datetime.now(timezone.utc),
-            frame_hash="frame-hash",
-            confidence_summary=0.95,
-        )
+        del window_session
+        if self._index >= len(self._observations):
+            return self._observations[-1]
+        observation = self._observations[self._index]
+        self._index += 1
+        return observation
 
 
 class FakeWindowGateway:
@@ -118,6 +117,73 @@ class BattleAutomationAppTestCase(unittest.TestCase):
             self.assertEqual(3, len(result.transitions))
             self.assertEqual("CAST_SKILL", result.executed_actions[0].action_type)
             self.assertTrue(list(runtime_session.artifacts.session_paths.actions.glob("action_*.json")))
+
+    def test_run_once_enters_recovering_when_defend_feedback_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            context = AutomationContext(
+                instance_id="instance-1",
+                battle_session_id="battle-1",
+                state=BattleState.ROUND_ACTIONABLE,
+            )
+            context.character_profile = CharacterProfileLoader().load(
+                CONFIGS_ROOT / "characters" / "mage-default.json"
+            )
+            runtime_session = RuntimeSession.create(Path(temp_dir), context)
+            calibration = ButtonCalibration.load(CONFIGS_ROOT / "ui" / "button-calibration.json")
+            semantic_catalog = BattleButtonSemanticCatalog.load(CONFIGS_ROOT / "ui" / "battle-button-semantics.json")
+            app = BattleAutomationApp(
+                context=context,
+                window_session=WindowSession(handle=1001, gateway=FakeWindowGateway()),
+                observation_provider=FakeObservationProvider(
+                    [
+                        build_observation("battle_ui", "battle_action_prompt", "battle_skill_bar"),
+                        build_observation("battle_ui", "battle_action_prompt", "battle_skill_bar"),
+                    ]
+                ),
+                state_machine=BattleStateMachine(),
+                policy=FixedRulePolicy(
+                    FixedActionRule(
+                        action_type=ActionType.CLICK_UI_BUTTON,
+                        reason="fixed_defend",
+                        target="character_battle_command_bar",
+                        parameters={"button_ref": "battle_command_bar.defend"},
+                    )
+                ),
+                executor=ActionExecutor(translator=ActionTranslator(button_calibration=calibration)),
+                runtime_session=runtime_session,
+                input_gateway=FakeInputGateway(),
+                feedback_verifier=ActionFeedbackVerifier(semantic_catalog),
+            )
+
+            result = app.run_once()
+
+            self.assertEqual(BattleState.RECOVERING, context.state)
+            self.assertEqual(3, len(result.transitions))
+            self.assertEqual("action_feedback_missing", result.transitions[-1].reason)
+
+
+def build_observation(*template_ids: str, round_number: int | None = 1) -> BattleObservation:
+    return BattleObservation(
+        battle_ui_visible=True,
+        action_prompt_visible="battle_action_prompt" in template_ids,
+        skill_panel_visible="battle_skill_bar" in template_ids,
+        target_select_visible="battle_target_panel" in template_ids,
+        settlement_visible=False,
+        window_alive=True,
+        window_focused=True,
+        frame_timestamp=datetime.now(timezone.utc),
+        frame_hash="frame-hash",
+        confidence_summary=0.95,
+        matches=tuple(
+            MatchResult(template_id=template_id, confidence=0.99, region_name="test")
+            for template_id in template_ids
+        ),
+        ocr_texts=(
+            ()
+            if round_number is None
+            else (OCRResult(text=f"第{round_number}回合", confidence=0.95, region_name="battle_main"),)
+        ),
+    )
 
 
 if __name__ == "__main__":

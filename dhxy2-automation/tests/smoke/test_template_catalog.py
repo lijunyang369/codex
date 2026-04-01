@@ -19,7 +19,7 @@ class TemplateCatalogTestCase(unittest.TestCase):
                         "id": "battle_ui",
                         "file": "present.png",
                         "scene": "battle",
-                        "region": "battle_main"
+                        "region": "battle_auto_button"
                     },
                     {
                         "id": "battle_skill_bar",

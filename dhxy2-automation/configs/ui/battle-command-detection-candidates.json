@@ -4,7 +4,7 @@
     "type": "template_detection",
     "template": "resources/templates/battle/battle_action_menu.png",
     "profile_key": "character_battle_command_bar",
-    "evidence_frame": "D:/Codex/dhxy2-automation/runs/artifacts/probes/battle-command-rescreenshot.png",
+    "evidence_frame": "runs/artifacts/probes/battle-command-rescreenshot.png",
     "notes": "Detected from battle action menu template. These are recognition candidates, not confirmed click targets."
   },
   "profiles": {
@@ -66,47 +66,40 @@
           "notes": "template-detected candidate from battle_action_menu"
         }
       },
-      "seeded_buttons": {
-        "battle_command_bar.pet": {
-          "label": "宝宝",
-          "status": "pending",
-          "point": [1146, 783],
-          "notes": "seeded from button-calibration.json for non-menu battle command recognition"
-        }
-      }
+      "seeded_buttons": {}
     },
     "pet_battle_command_bar": {
       "label": "宠物战斗指令",
       "layout": {
-        "x": 1247,
-        "start_y": 267,
-        "step_y": 34,
-        "notes": "template-detected from battle_action_menu; pet battle screenshot confirms only first four menu rows are used"
+        "x": 1300,
+        "start_y": 295,
+        "step_y": 30,
+        "notes": "seeded from confirmed pet battle command screenshot; top-to-bottom rows are spell/item/defend/protect"
       },
       "buttons": {
         "spell": {
           "label": "法术",
           "status": "candidate",
-          "point": [1247, 267],
-          "notes": "pet battle command candidate from top row"
+          "point": [1300, 295],
+          "notes": "pet battle command candidate from confirmed screenshot row 1"
         },
         "item": {
           "label": "道具",
           "status": "candidate",
-          "point": [1247, 301],
-          "notes": "pet battle command candidate from second row"
+          "point": [1300, 325],
+          "notes": "pet battle command candidate from confirmed screenshot row 2"
         },
         "defend": {
           "label": "防御",
           "status": "candidate",
-          "point": [1247, 336],
-          "notes": "pet battle command candidate from third row"
+          "point": [1300, 355],
+          "notes": "pet battle command candidate from confirmed screenshot row 3"
         },
         "protect": {
           "label": "保护",
           "status": "candidate",
-          "point": [1247, 370],
-          "notes": "pet battle command candidate from fourth row"
+          "point": [1300, 385],
+          "notes": "pet battle command candidate from confirmed screenshot row 4"
         }
       },
       "seeded_buttons": {}

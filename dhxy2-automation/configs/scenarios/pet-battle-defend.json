@@ -1,12 +1,12 @@
 {
-  "scenario_id": "battle-smoke",
+  "scenario_id": "pet-battle-defend",
   "initial_state": "ROUND_ACTIONABLE",
   "primary_rule": {
     "action_type": "CLICK_UI_BUTTON",
-    "reason": "fixed_click_defend_button",
-    "target": "battle_command_bar",
+    "reason": "fixed_pet_battle_defend_button",
+    "target": "pet_battle_command_bar",
     "parameters": {
-      "button_ref": "battle_command_bar.defend"
+      "button_ref": "pet_battle_command_bar.defend"
     }
   },
   "regions": [

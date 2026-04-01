@@ -75,6 +75,26 @@ class BattleStateMachineTestCase(unittest.TestCase):
         self.assertEqual(BattleState.FAILED, final.to_state)
         self.assertEqual(BattleState.FAILED, self.context.state)
 
+    def test_round_waiting_can_exit_directly_when_battle_ui_disappears(self) -> None:
+        self.context.state = BattleState.ROUND_WAITING
+        self.context.previous_stable_state = BattleState.ROUND_WAITING
+
+        transition = self.machine.tick(build_observation(battle_ui_visible=False), self.context)
+
+        self.assertTrue(transition.changed)
+        self.assertEqual(BattleState.OUT_OF_BATTLE, transition.to_state)
+        self.assertEqual(BattleState.OUT_OF_BATTLE, self.context.state)
+
+    def test_round_actionable_can_exit_directly_when_battle_ui_disappears(self) -> None:
+        self.context.state = BattleState.ROUND_ACTIONABLE
+        self.context.previous_stable_state = BattleState.ROUND_ACTIONABLE
+
+        transition = self.machine.tick(build_observation(battle_ui_visible=False), self.context)
+
+        self.assertTrue(transition.changed)
+        self.assertEqual(BattleState.OUT_OF_BATTLE, transition.to_state)
+        self.assertEqual(BattleState.OUT_OF_BATTLE, self.context.state)
+
 
 if __name__ == "__main__":
     unittest.main()

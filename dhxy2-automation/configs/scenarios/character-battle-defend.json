@@ -1,10 +1,10 @@
 {
-  "scenario_id": "battle-smoke",
+  "scenario_id": "character-battle-defend",
   "initial_state": "ROUND_ACTIONABLE",
   "primary_rule": {
     "action_type": "CLICK_UI_BUTTON",
-    "reason": "fixed_click_defend_button",
-    "target": "battle_command_bar",
+    "reason": "fixed_character_battle_defend_button",
+    "target": "character_battle_command_bar",
     "parameters": {
       "button_ref": "battle_command_bar.defend"
     }

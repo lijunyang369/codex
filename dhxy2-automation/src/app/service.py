@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass
 
-from src.domain import AutomationContext, BattleObservation, CharacterProfile, TransitionResult
+from src.app.action_feedback import ActionFeedbackVerifier
+from src.domain import AutomationAction, AutomationContext, BattleObservation, CharacterProfile, TransitionResult
 from src.executor import ActionExecutor, ExecutionResult, InputGateway
 from src.platform import WindowSession
 from src.policy import FixedRulePolicy
@@ -14,8 +15,10 @@ from src.app.interfaces import ObservationProvider
 @dataclass(frozen=True)
 class AppTickResult:
     observation: BattleObservation
+    feedback_observation: BattleObservation | None
     transitions: tuple[TransitionResult, ...]
     executed_actions: tuple[ExecutionResult, ...]
+    planned_actions: tuple[AutomationAction, ...] = ()
 
 
 class BattleAutomationApp:
@@ -29,6 +32,7 @@ class BattleAutomationApp:
         executor: ActionExecutor,
         runtime_session: RuntimeSession,
         input_gateway: InputGateway,
+        feedback_verifier: ActionFeedbackVerifier | None = None,
     ) -> None:
         self._context = context
         self._window_session = window_session
@@ -38,6 +42,7 @@ class BattleAutomationApp:
         self._executor = executor
         self._runtime_session = runtime_session
         self._input_gateway = input_gateway
+        self._feedback_verifier = feedback_verifier or ActionFeedbackVerifier()
 
     @property
     def context(self) -> AutomationContext:
@@ -66,8 +71,10 @@ class BattleAutomationApp:
         if plan.is_empty():
             return AppTickResult(
                 observation=observation,
+                feedback_observation=None,
                 transitions=tuple(transitions),
                 executed_actions=tuple(executed_actions),
+                planned_actions=(),
             )
 
         begin_transition = self._state_machine.begin_action(plan, self._context)
@@ -84,12 +91,30 @@ class BattleAutomationApp:
                 )
             )
 
-        finish_transition = self._state_machine.complete_action(self._context, accepted_by_ui=True)
+        feedback_observation = self._observation_provider.observe(self._window_session)
+        self._runtime_session.record_observation(feedback_observation)
+        feedback_decision = self._feedback_verifier.verify_plan(
+            plan=plan,
+            before=observation,
+            after=feedback_observation,
+        )
+        self._context.metadata["last_action_feedback"] = feedback_decision.reason
+        finish_transition = self._state_machine.complete_action(
+            self._context,
+            accepted_by_ui=feedback_decision.accepted,
+        )
         self._runtime_session.record_transition(finish_transition)
         transitions.append(finish_transition)
 
+        if observation.battle_ui_visible and not feedback_observation.battle_ui_visible:
+            end_transition = self._state_machine.tick(feedback_observation, self._context)
+            self._runtime_session.record_transition(end_transition)
+            transitions.append(end_transition)
+
         return AppTickResult(
             observation=observation,
+            feedback_observation=feedback_observation,
             transitions=tuple(transitions),
             executed_actions=tuple(executed_actions),
+            planned_actions=plan.actions,
         )

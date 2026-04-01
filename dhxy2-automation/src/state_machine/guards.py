@@ -27,6 +27,7 @@ class TransitionGuard:
             BattleState.ROUND_ACTIONABLE,
             BattleState.ACTION_EXECUTING,
             BattleState.BATTLE_SETTLING,
+            BattleState.OUT_OF_BATTLE,
             BattleState.RECOVERING,
         },
         BattleState.ACTION_EXECUTING: {
@@ -38,6 +39,7 @@ class TransitionGuard:
             BattleState.ROUND_WAITING,
             BattleState.ROUND_ACTIONABLE,
             BattleState.BATTLE_SETTLING,
+            BattleState.OUT_OF_BATTLE,
             BattleState.RECOVERING,
         },
         BattleState.BATTLE_SETTLING: {
@@ -74,7 +76,7 @@ class TransitionGuard:
             return False
 
         if to_state == BattleState.ROUND_ACTIONABLE:
-            return observation.action_prompt_visible or observation.skill_panel_visible
+            return observation.round_timer_visible or observation.action_prompt_visible or observation.skill_panel_visible
 
         if to_state == BattleState.BATTLE_FINISHED:
             return observation.settlement_visible

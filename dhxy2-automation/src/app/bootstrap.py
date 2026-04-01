@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from src.app.account_loader import AccountBindingLoader
+from src.app.action_feedback import ActionFeedbackVerifier
 from src.app.config_refs import configs_root, resolve_config_reference
 from src.app.observation_provider import DefaultObservationProvider, DefaultObservationProviderConfig
 from src.app.profile_loader import CharacterProfileLoader
@@ -14,16 +15,25 @@ from src.app.window_binding import resolve_window_session
 from src.domain import AccountBinding, ActionType, AutomationContext, BattleState, MatchResult, OCRResult
 from src.executor import ActionExecutor, ActionTranslator, ButtonCalibration, InputGateway
 from src.perception import (
+    BattleRoundOCRReader,
     NullOCRReader,
     NullTemplateMatcher,
+    ObservationBuilder,
     OpenCvTemplateMatcher,
     RegionRequest,
     StaticOCRReader,
     StaticTemplateMatcher,
+    BattleButtonSemanticCatalog,
     TemplateCatalog,
 )
 from src.platform import PyWin32WindowGateway, WindowSession
-from src.policy import FixedActionRule, FixedRulePolicy
+from src.policy import (
+    FixedActionRule,
+    FixedRulePolicy,
+    ScriptedActionRule,
+    ScriptedRoundPolicy,
+    ScriptedRoundRule,
+)
 from src.runtime import RuntimeSession
 from src.state_machine import BattleStateMachine
 
@@ -33,6 +43,14 @@ class BootstrapPaths:
     env_config: Path
     account_config: Path
     scenario_config: Path
+
+
+@dataclass(frozen=True)
+class ObservationPipeline:
+    builder: ObservationBuilder
+    config: DefaultObservationProviderConfig
+    template_matcher: object
+    ocr_reader: object
 
 
 class JsonConfigLoader:
@@ -79,35 +97,20 @@ def build_app(
 
     runtime_session = RuntimeSession.create(Path(env_config["runs_root"]), context)
 
-    primary_rule = scenario_config["primary_rule"]
-    policy = FixedRulePolicy(
-        FixedActionRule(
-            action_type=ActionType(primary_rule["action_type"]),
-            reason=primary_rule["reason"],
-            target=primary_rule.get("target"),
-            parameters=dict(primary_rule.get("parameters", {})),
-        )
-    )
+    policy = _build_policy(scenario_config)
 
-    regions = tuple(
-        RegionRequest(
-            name=entry["name"],
-            rect=_to_rect(entry.get("rect")),
-            use_template_match=bool(entry.get("use_template_match", True)),
-            use_ocr=bool(entry.get("use_ocr", False)),
-        )
-        for entry in scenario_config.get("regions", [])
+    observation_pipeline = _build_observation_pipeline_from_configs(
+        scenario_config=scenario_config,
+        env_config=env_config,
     )
-
-    dry_run = bool(env_config.get("dry_run", False))
-    template_matcher = _build_template_matcher(scenario_config, env_config, dry_run)
-    ocr_reader = _build_ocr_reader(scenario_config, dry_run)
     observation_provider = DefaultObservationProvider(
-        template_matcher=template_matcher,
-        ocr_reader=ocr_reader,
-        config=DefaultObservationProviderConfig(regions=regions),
+        template_matcher=observation_pipeline.template_matcher,
+        ocr_reader=observation_pipeline.ocr_reader,
+        builder=observation_pipeline.builder,
+        config=observation_pipeline.config,
     )
     executor = _build_executor(env_config)
+    feedback_verifier = _build_feedback_verifier(env_config)
 
     return BattleAutomationApp(
         context=context,
@@ -118,6 +121,7 @@ def build_app(
         executor=executor,
         runtime_session=runtime_session,
         input_gateway=input_gateway or NoOpInputGateway(),
+        feedback_verifier=feedback_verifier,
     )
 
 
@@ -128,6 +132,22 @@ def build_app_from_configs(
 ) -> BattleAutomationApp:
     window_session = resolve_window_session(paths.account_config, gateway=gateway)
     return build_app(paths=paths, window_session=window_session, input_gateway=input_gateway)
+
+
+def build_observation_pipeline(
+    paths: BootstrapPaths,
+    *,
+    force_live: bool = False,
+) -> ObservationPipeline:
+    loader = JsonConfigLoader()
+    env_config = loader.load(paths.env_config)
+    scenario_config = loader.load(paths.scenario_config)
+    if force_live:
+        env_config["dry_run"] = False
+    return _build_observation_pipeline_from_configs(
+        scenario_config=scenario_config,
+        env_config=env_config,
+    )
 
 
 def _build_executor(env_config: dict[str, Any]) -> ActionExecutor:
@@ -151,6 +171,28 @@ def _load_character_profile(account_config_path: Path, account_binding: AccountB
         allowed_root=character_root,
     )
     return CharacterProfileLoader().load(character_config_path)
+
+
+def _build_observation_pipeline_from_configs(
+    scenario_config: dict[str, Any],
+    env_config: dict[str, Any],
+) -> ObservationPipeline:
+    regions = tuple(
+        RegionRequest(
+            name=entry["name"],
+            rect=_to_rect(entry.get("rect")),
+            use_template_match=bool(entry.get("use_template_match", True)),
+            use_ocr=bool(entry.get("use_ocr", False)),
+        )
+        for entry in scenario_config.get("regions", [])
+    )
+    dry_run = bool(env_config.get("dry_run", False))
+    return ObservationPipeline(
+        builder=ObservationBuilder(),
+        config=DefaultObservationProviderConfig(regions=regions),
+        template_matcher=_build_template_matcher(scenario_config, env_config, dry_run),
+        ocr_reader=_build_ocr_reader(scenario_config, dry_run),
+    )
 
 
 def _build_template_matcher(scenario_config: dict[str, Any], env_config: dict[str, Any], dry_run: bool):
@@ -191,7 +233,7 @@ def _build_ocr_reader(scenario_config: dict[str, Any], dry_run: bool):
                 for entry in entries
             )
         return StaticOCRReader(lines_by_region)
-    return NullOCRReader()
+    return BattleRoundOCRReader()
 
 
 def _to_rect(raw: list[int] | tuple[int, int, int, int] | None):
@@ -201,3 +243,48 @@ def _to_rect(raw: list[int] | tuple[int, int, int, int] | None):
 
     left, top, right, bottom = raw
     return Rect(left=left, top=top, right=right, bottom=bottom)
+
+
+def _build_feedback_verifier(env_config: dict[str, Any]) -> ActionFeedbackVerifier:
+    semantic_catalog_path = env_config.get("battle_button_semantics")
+    semantic_file: Path | None = None
+    if semantic_catalog_path:
+        semantic_file = Path(semantic_catalog_path)
+    else:
+        button_calibration = env_config.get("button_calibration")
+        if button_calibration:
+            semantic_file = Path(button_calibration).with_name("battle-button-semantics.json")
+    if semantic_file is not None and semantic_file.is_file():
+        return ActionFeedbackVerifier(BattleButtonSemanticCatalog.load(semantic_file))
+    return ActionFeedbackVerifier()
+
+
+def _build_policy(scenario_config: dict[str, Any]):
+    round_script = scenario_config.get("round_script")
+    if round_script:
+        rounds: list[ScriptedRoundRule] = []
+        for round_payload in round_script:
+            rounds.append(
+                ScriptedRoundRule(
+                    reason=str(round_payload["reason"]),
+                    actions=tuple(
+                        ScriptedActionRule(
+                            action_type=ActionType(action_payload["action_type"]),
+                            target=action_payload.get("target"),
+                            parameters=dict(action_payload.get("parameters", {})),
+                        )
+                        for action_payload in round_payload.get("actions", [])
+                    ),
+                )
+            )
+        return ScriptedRoundPolicy(tuple(rounds))
+
+    primary_rule = scenario_config["primary_rule"]
+    return FixedRulePolicy(
+        FixedActionRule(
+            action_type=ActionType(primary_rule["action_type"]),
+            reason=primary_rule["reason"],
+            target=primary_rule.get("target"),
+            parameters=dict(primary_rule.get("parameters", {})),
+        )
+    )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import traceback
 from pathlib import Path
@@ -31,6 +32,8 @@ def _show_startup_error(message: str) -> None:
 def main() -> int:
     project_root = _resolve_project_root()
     _ensure_project_root_on_sys_path(project_root)
+    os.environ["DHXY_TOOL_LAUNCHER"] = str(Path(__file__).resolve())
+    os.environ["DHXY_TOOL_PROJECT_ROOT"] = str(project_root)
     try:
         from src.app.manual_probe_tool import launch_manual_coordinate_probe
 

@@ -22,13 +22,9 @@
         "summon": "召唤",
         "recall": "召还",
         "catch": "捕捉",
-        "escape": "逃跑",
-        "pet": "宝宝"
+        "escape": "逃跑"
       },
-      "seed_button_refs": [
-        "battle_command_bar.pet"
-      ],
-      "notes": "角色战斗指令包含右侧主指令菜单，另外带宝宝快捷指令入口。"
+      "notes": "角色战斗指令只包含右侧主指令菜单。"
     },
     "pet_battle_command_bar": {
       "label": "宠物战斗指令",

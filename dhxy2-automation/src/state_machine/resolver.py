@@ -31,7 +31,7 @@ class StateResolver:
         if not observation.battle_ui_visible:
             return BattleState.OUT_OF_BATTLE
 
-        if observation.action_prompt_visible or observation.skill_panel_visible:
+        if observation.round_timer_visible or observation.action_prompt_visible or observation.skill_panel_visible:
             return BattleState.ROUND_ACTIONABLE
 
         if context.state == BattleState.ACTION_EXECUTING:

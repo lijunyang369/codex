@@ -1,19 +1,27 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
 
 from src.app.interfaces import ObservationProvider
 from src.domain import BattleObservation, MatchResult, OCRResult
-from src.perception import ObservationBuilder
+from src.perception import ObservationBuilder, RecognitionSnapshot
 from src.perception.interfaces import OCRReader, TemplateMatcher
 from src.perception.services import RegionRequest
-from src.platform import WindowSession
+from src.platform import FrameCapture, WindowInfo, WindowSession
 from src.platform.models import Rect
 
 
 @dataclass(frozen=True)
 class DefaultObservationProviderConfig:
     regions: tuple[RegionRequest, ...]
+
+
+@dataclass(frozen=True)
+class ObservationCapture:
+    frame: FrameCapture
+    window_info: WindowInfo
+    snapshot: RecognitionSnapshot
+    named_regions: dict[str, Rect]
 
 
 class DefaultObservationProvider(ObservationProvider):
@@ -29,7 +37,11 @@ class DefaultObservationProvider(ObservationProvider):
         self._builder = builder or ObservationBuilder()
         self._config = config or DefaultObservationProviderConfig(regions=())
 
-    def observe(self, window_session: WindowSession) -> BattleObservation:
+    @property
+    def builder(self) -> ObservationBuilder:
+        return self._builder
+
+    def capture(self, window_session: WindowSession) -> ObservationCapture:
         window_info = window_session.snapshot()
         frame = window_session.capture_client()
 
@@ -45,10 +57,22 @@ class DefaultObservationProvider(ObservationProvider):
             if region.use_ocr:
                 ocr_texts.extend(self._ocr_reader.read_lines(frame, region.name, region.rect))
 
-        return self._builder.build(
-            frame=frame,
-            window_info=window_info,
+        snapshot = self._builder.build_snapshot(
             matches=tuple(matches),
             ocr_texts=tuple(ocr_texts),
             named_regions=named_regions,
+        )
+        return ObservationCapture(
+            frame=frame,
+            window_info=window_info,
+            snapshot=snapshot,
+            named_regions=named_regions,
+        )
+
+    def observe(self, window_session: WindowSession) -> BattleObservation:
+        capture = self.capture(window_session)
+        return self._builder.build_from_snapshot(
+            frame=capture.frame,
+            window_info=capture.window_info,
+            snapshot=capture.snapshot,
         )

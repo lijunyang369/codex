@@ -3,11 +3,14 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from PIL import Image
 
 from src.app import BootstrapPaths, NoOpInputGateway, build_app
+from src.app.bootstrap import _build_feedback_verifier
+from src.domain import ActionPlan, BattleObservation
 from src.platform import Rect, WindowSession
 from tests.smoke._paths import CONFIGS_ROOT
 
@@ -41,7 +44,34 @@ class FakeWindowGateway:
         return Image.new("RGB", (rect.width, rect.height), color="black")
 
 
+def build_observation() -> BattleObservation:
+    return BattleObservation(
+        battle_ui_visible=True,
+        action_prompt_visible=False,
+        skill_panel_visible=False,
+        target_select_visible=False,
+        settlement_visible=False,
+        window_alive=True,
+        window_focused=True,
+        frame_timestamp=datetime.now(timezone.utc),
+        frame_hash="frame-hash",
+        confidence_summary=0.95,
+    )
+
+
 class BootstrapTestCase(unittest.TestCase):
+    def test_build_feedback_verifier_without_semantic_config_falls_back_to_default_verifier(self) -> None:
+        verifier = _build_feedback_verifier({})
+
+        decision = verifier.verify_plan(
+            ActionPlan(actions=(), reason="no-actions"),
+            build_observation(),
+            build_observation(),
+        )
+
+        self.assertTrue(decision.accepted)
+        self.assertEqual("semantic_catalog_unavailable", decision.reason)
+
     def test_build_app_from_json_configs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             env_path = Path(temp_dir) / "local.json"
@@ -74,6 +104,32 @@ class BootstrapTestCase(unittest.TestCase):
             self.assertIn("character_profile", app.context.metadata)
             self.assertEqual("mage-default", app.context.metadata["character_profile"]["character_id"])
             self.assertTrue(app.context.battle_session_id.startswith("battle-smoke"))
+
+    def test_build_app_supports_round_script_scenario(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            env_path = Path(temp_dir) / "local.json"
+            env_payload = {
+                "runs_root": temp_dir,
+                "dry_run": True,
+                "button_calibration": str(CONFIGS_ROOT / "ui" / "button-calibration.json"),
+            }
+            env_path.write_text(json.dumps(env_payload, ensure_ascii=False), encoding="utf-8")
+
+            app = build_app(
+                BootstrapPaths(
+                    env_config=env_path,
+                    account_config=CONFIGS_ROOT / "accounts" / "instance-1.json",
+                    scenario_config=CONFIGS_ROOT / "scenarios" / "battle-basic-validation.json",
+                ),
+                window_session=WindowSession(handle=1001, gateway=FakeWindowGateway()),
+                input_gateway=NoOpInputGateway(),
+            )
+
+            result = app.run_once()
+
+            self.assertEqual(2, len(result.executed_actions))
+            self.assertEqual(["CLICK_UI_BUTTON", "CLICK_UI_BUTTON"], [item.action_type for item in result.executed_actions])
+            self.assertTrue(app.context.battle_session_id.startswith("battle-basic-validation"))
 
     def test_build_app_rejects_character_config_outside_allowed_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

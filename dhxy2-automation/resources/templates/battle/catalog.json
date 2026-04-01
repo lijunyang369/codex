@@ -2,12 +2,12 @@
   "templates": [
     {
       "id": "battle_ui",
-      "file": "battle_ui_round_indicator.png",
+      "file": "battle_ui_auto_button.png",
       "scene": "battle",
-      "region": "battle_main",
+      "region": "battle_auto_button",
       "threshold": 0.95,
       "resolution": "1378x831",
-      "note": "Real battle round indicator captured from live client."
+      "note": "Real battle auto button captured from live client."
     },
     {
       "id": "battle_action_prompt",

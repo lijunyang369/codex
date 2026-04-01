@@ -76,20 +76,20 @@ class BattleButtonSemanticCatalogTestCase(unittest.TestCase):
         self.assertTrue(result.confirmed)
         self.assertEqual("ready", result.verification_status)
 
-    def test_character_pet_command_is_registered_but_not_ready(self) -> None:
-        before = build_observation("battle_ui", "battle_action_prompt", "battle_skill_bar")
-        after = build_observation("battle_ui", "battle_skill_bar")
-
-        result = self.catalog.verify("character_battle_command_bar.pet", before, after)
-
-        self.assertFalse(result.confirmed)
-        self.assertEqual("blocked_by_missing_template", result.verification_status)
-
     def test_pet_battle_defend_uses_independent_semantic_rule(self) -> None:
         before = build_observation("battle_ui", "battle_action_prompt", "battle_skill_bar")
         after = build_observation("battle_ui", "battle_skill_bar")
 
         result = self.catalog.verify("pet_battle_command_bar.defend", before, after)
+
+        self.assertTrue(result.confirmed)
+        self.assertEqual("ready", result.verification_status)
+
+    def test_character_battle_escape_uses_ready_semantic_rule(self) -> None:
+        before = build_observation("battle_ui", "battle_action_prompt", "battle_skill_bar")
+        after = build_observation("battle_ui", "battle_skill_bar")
+
+        result = self.catalog.verify("character_battle_command_bar.escape", before, after)
 
         self.assertTrue(result.confirmed)
         self.assertEqual("ready", result.verification_status)

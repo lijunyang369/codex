@@ -2,10 +2,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 import tempfile
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from src.app import BootstrapPaths, JsonConfigLoader, NoOpInputGateway, build_app_from_configs
+from src.domain import BattleState
 from src.executor import Win32SendInputGateway
 from src.platform import PyWin32WindowGateway
 
@@ -16,6 +22,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--account", default="configs/accounts/instance-1.json")
     parser.add_argument("--scenario", default="configs/scenarios/battle-smoke.json")
     parser.add_argument("--ticks", type=int, default=1)
+    parser.add_argument("--max-ticks", type=int, default=12, help="Upper bound used with --until-out-of-battle.")
+    parser.add_argument(
+        "--until-out-of-battle",
+        action="store_true",
+        help="Run until state becomes OUT_OF_BATTLE or max-ticks is reached.",
+    )
     parser.add_argument("--live", action="store_true", help="Enable real input gateway and force dry_run=false.")
     parser.add_argument("--detect-only", action="store_true", help="Only run scene recognition; do not emit real input.")
     return parser.parse_args()
@@ -23,10 +35,9 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
-    root = Path(__file__).resolve().parents[1]
-    env_path = root / args.env
-    account_path = root / args.account
-    scenario_path = root / args.scenario
+    env_path = PROJECT_ROOT / args.env
+    account_path = PROJECT_ROOT / args.account
+    scenario_path = PROJECT_ROOT / args.scenario
 
     loader = JsonConfigLoader()
     env_config = loader.load(env_path)
@@ -55,18 +66,21 @@ def main() -> int:
 
         app.window_session.focus()
 
-        ticks = max(1, int(args.ticks))
-        last_result = None
-        for _ in range(ticks):
-            last_result = app.run_once()
+        last_result, ticks_run = _run_ticks(
+            app=app,
+            ticks=max(1, int(args.ticks)),
+            until_out_of_battle=bool(args.until_out_of_battle),
+            max_ticks=max(1, int(args.max_ticks)),
+        )
         assert last_result is not None
 
         payload = {
             "state": app.context.state.value,
             "window_handle": app.window_session.handle,
-            "ticks": ticks,
+            "ticks": ticks_run,
             "live_mode": bool(args.live),
             "detect_only": bool(args.detect_only),
+            "until_out_of_battle": bool(args.until_out_of_battle),
             "transition_count": len(last_result.transitions),
             "executed_action_count": len(last_result.executed_actions),
             "executed_action_types": [entry.action_type for entry in last_result.executed_actions],
@@ -93,6 +107,29 @@ def main() -> int:
     finally:
         if temp_env_path is not None and temp_env_path.exists():
             temp_env_path.unlink()
+
+
+def _run_ticks(
+    app,
+    *,
+    ticks: int,
+    until_out_of_battle: bool,
+    max_ticks: int,
+):
+    last_result = None
+    ticks_run = 0
+    if until_out_of_battle:
+        while ticks_run < max_ticks:
+            last_result = app.run_once()
+            ticks_run += 1
+            if app.context.state == BattleState.OUT_OF_BATTLE:
+                break
+        return last_result, ticks_run
+
+    for _ in range(ticks):
+        last_result = app.run_once()
+        ticks_run += 1
+    return last_result, ticks_run
 
 
 if __name__ == "__main__":

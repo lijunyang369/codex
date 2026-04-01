@@ -103,6 +103,28 @@ class ActionExecutorTestCase(unittest.TestCase):
         self.assertTrue(result.success)
         self.assertEqual([("click", (950, 802))], self.input_gateway.operations)
 
+    def test_click_ui_button_executes_character_battle_command_point(self) -> None:
+        action = AutomationAction(
+            action_type=ActionType.CLICK_UI_BUTTON,
+            parameters={"button_ref": "battle_command_bar.defend"},
+        )
+
+        result = self.executor.execute(action, self.window_session, self.input_gateway)
+
+        self.assertTrue(result.success)
+        self.assertEqual([("click", (1300, 355))], self.input_gateway.operations)
+
+    def test_click_ui_button_executes_pet_battle_command_point(self) -> None:
+        action = AutomationAction(
+            action_type=ActionType.CLICK_UI_BUTTON,
+            parameters={"button_ref": "pet_battle_command_bar.defend"},
+        )
+
+        result = self.executor.execute(action, self.window_session, self.input_gateway)
+
+        self.assertTrue(result.success)
+        self.assertEqual([("click", (1300, 455))], self.input_gateway.operations)
+
     def test_recover_action_focuses_and_waits(self) -> None:
         action = AutomationAction(
             action_type=ActionType.RECOVER,

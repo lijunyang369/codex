@@ -25,7 +25,7 @@ class ObservationBuilderTestCase(unittest.TestCase):
 
     def test_build_sets_battle_flags_from_template_ids(self) -> None:
         matches = (
-            MatchResult(template_id="battle_ui", confidence=0.96, region_name="battle_main"),
+            MatchResult(template_id="battle_ui", confidence=0.96, region_name="battle_auto_button"),
             MatchResult(template_id="battle_action_prompt", confidence=0.93, region_name="battle_prompt"),
             MatchResult(template_id="battle_skill_bar", confidence=0.91, region_name="skill_bar"),
         )
@@ -36,7 +36,12 @@ class ObservationBuilderTestCase(unittest.TestCase):
             window_info=self.window_info,
             matches=matches,
             ocr_texts=ocr_lines,
-            named_regions={"battle_prompt": Rect(10, 10, 100, 40)},
+            named_regions={
+                "battle_main": Rect(0, 0, 100, 40),
+                "battle_auto_button": Rect(120, 70, 180, 110),
+                "battle_prompt": Rect(10, 10, 100, 40),
+                "skill_bar": Rect(20, 60, 140, 100),
+            },
         )
 
         self.assertTrue(observation.battle_ui_visible)
@@ -63,6 +68,7 @@ class ObservationBuilderTestCase(unittest.TestCase):
             frame=self.frame,
             window_info=self.window_info,
             matches=matches,
+            named_regions={"settlement_panel": Rect(20, 10, 120, 60)},
         )
 
         self.assertTrue(observation.settlement_visible)

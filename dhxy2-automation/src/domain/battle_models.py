@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+import re
 
 from src.domain.profile_models import CharacterProfile
 
@@ -89,6 +90,30 @@ class BattleObservation:
     @property
     def recovery_required(self) -> bool:
         return (not self.window_alive) or (self.anomaly_reason is not None)
+
+    @property
+    def round_timer_visible(self) -> bool:
+        return bool(self.round_number_text) or any(match.template_id == "battle_ui" for match in self.matches)
+
+    @property
+    def round_number_text(self) -> str:
+        for line in self.ocr_texts:
+            if line.region_name != "battle_main":
+                continue
+            digits = "".join(re.findall(r"\d+", line.text))
+            if digits:
+                return digits
+        return ""
+
+    @property
+    def round_number(self) -> int | None:
+        text = self.round_number_text
+        if not text:
+            return None
+        try:
+            return int(text)
+        except ValueError:
+            return None
 
 
 @dataclass

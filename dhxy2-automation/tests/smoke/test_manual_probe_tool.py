@@ -3,13 +3,21 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
+from src.app.recognition_workbench import RecognitionWorkbenchService
 from src.app.manual_probe_tool import (
+    AutoBattleTickReport,
     ButtonCalibrationStore,
     ManualCoordinateProbeService,
     ManualProbeArtifacts,
+    _snapshot_file_mtimes,
+    format_auto_battle_tick_lines,
 )
+from src.domain import ActionType, AutomationAction, BattleObservation, MatchResult, OCRResult, TransitionResult, BattleState
+from src.executor import ExecutionResult, ExecutionStep, StepType
+from tests.smoke._paths import RUNS_ROOT
 
 
 class ManualCoordinateProbeServiceTestCase(unittest.TestCase):
@@ -141,6 +149,218 @@ class ButtonCalibrationStoreTestCase(unittest.TestCase):
             self.assertEqual("confirmed", updated.status)
             self.assertEqual([1282, 805], payload["nonbattle_toolbar"]["buttons"]["friend_panel"]["point"])
             self.assertEqual("confirmed", payload["nonbattle_toolbar"]["buttons"]["friend_panel"]["status"])
+
+
+class AutoBattleLogFormattingTestCase(unittest.TestCase):
+    def test_format_auto_battle_tick_lines_includes_recognition_action_and_result_sections(self) -> None:
+        report = AutoBattleTickReport(
+            tick_index=2,
+            state="ROUND_WAITING",
+            round_index=1,
+            feedback_reason="action_feedback_confirmed",
+            session_root="D:/runs/session",
+            runtime_log_path="D:/runs/session/logs/runtime.log",
+            observation=BattleObservation(
+                battle_ui_visible=True,
+                action_prompt_visible=False,
+                skill_panel_visible=True,
+                target_select_visible=False,
+                settlement_visible=False,
+                window_alive=True,
+                window_focused=True,
+                frame_timestamp=datetime.now(timezone.utc),
+                frame_hash="frame-2",
+                confidence_summary=0.97,
+                matches=(
+                    MatchResult(
+                        template_id="battle_ui",
+                        confidence=0.99,
+                        region_name="battle_scene",
+                    ),
+                ),
+                ocr_texts=(
+                    OCRResult(
+                        text="第4回合",
+                        confidence=0.96,
+                        region_name="battle_main",
+                    ),
+                ),
+            ),
+            feedback_observation=BattleObservation(
+                battle_ui_visible=True,
+                action_prompt_visible=False,
+                skill_panel_visible=True,
+                target_select_visible=False,
+                settlement_visible=False,
+                window_alive=True,
+                window_focused=True,
+                frame_timestamp=datetime.now(timezone.utc),
+                frame_hash="frame-2-after",
+                confidence_summary=0.97,
+            ),
+            transitions=(
+                TransitionResult(
+                    from_state=BattleState.ROUND_ACTIONABLE,
+                    to_state=BattleState.ACTION_EXECUTING,
+                    changed=True,
+                    reason="plan_started",
+                    observed_state=BattleState.ROUND_ACTIONABLE,
+                ),
+            ),
+            planned_actions=(
+                AutomationAction(
+                    action_type=ActionType.CLICK_UI_BUTTON,
+                    parameters={"button_ref": "battle_command_bar.escape"},
+                ),
+                AutomationAction(
+                    action_type=ActionType.CLICK_UI_BUTTON,
+                    parameters={"button_ref": "pet_battle_command_bar.defend"},
+                ),
+            ),
+            executed_actions=(
+                ExecutionResult(
+                    action_type="CLICK_UI_BUTTON",
+                    success=True,
+                    steps=(
+                        ExecutionStep(step_type=StepType.FOCUS_WINDOW),
+                        ExecutionStep(step_type=StepType.CLICK, payload={"point": (1300, 455)}),
+                    ),
+                    message="action executed",
+                ),
+            ),
+            finished=False,
+        )
+
+        lines = format_auto_battle_tick_lines(report)
+        joined = "\n".join(lines)
+
+        self.assertIn("当前场景：战斗场景", joined)
+        self.assertIn("战斗识别：回合数=4，回合计时=是", joined)
+        self.assertIn("战斗回合：第 4 回合", joined)
+        self.assertIn("人物指令：逃跑", joined)
+        self.assertIn("宠物指令：防御", joined)
+
+
+class HotReloadHelperTestCase(unittest.TestCase):
+    def test_snapshot_file_mtimes_only_includes_existing_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            existing = root / "exists.txt"
+            missing = root / "missing.txt"
+            existing.write_text("ok", encoding="utf-8")
+
+            snapshot = _snapshot_file_mtimes((existing, missing))
+
+            self.assertIn(str(existing), snapshot)
+            self.assertNotIn(str(missing), snapshot)
+
+
+class RecognitionWorkbenchServiceTestCase(unittest.TestCase):
+    def test_update_region_rect_writes_back_to_scenario_config(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "configs" / "env").mkdir(parents=True, exist_ok=True)
+            (root / "configs" / "accounts").mkdir(parents=True, exist_ok=True)
+            (root / "configs" / "scenarios").mkdir(parents=True, exist_ok=True)
+            (root / "resources" / "templates" / "battle").mkdir(parents=True, exist_ok=True)
+
+            (root / "configs" / "env" / "local.json").write_text(
+                json.dumps(
+                    {
+                        "template_catalog": str(root / "resources" / "templates" / "battle" / "catalog.json"),
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            (root / "resources" / "templates" / "battle" / "catalog.json").write_text(
+                json.dumps({"templates": []}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            (root / "configs" / "accounts" / "instance-1.json").write_text(
+                json.dumps({"instance_id": "instance-1"}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            scenario_path = root / "configs" / "scenarios" / "battle-basic-validation.json"
+            scenario_path.write_text(
+                json.dumps(
+                    {
+                        "scenario_id": "battle-basic-validation",
+                        "regions": [
+                            {"name": "battle_main", "rect": [0, 0, 180, 120], "use_ocr": True},
+                            {"name": "battle_auto_button", "rect": [1290, 700, 1368, 750], "use_template_match": True},
+                        ],
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+
+            service = RecognitionWorkbenchService(root)
+            updated = service.update_region_rect("battle_main", (1, 2, 300, 160))
+            payload = json.loads(scenario_path.read_text(encoding="utf-8-sig"))
+
+            self.assertEqual((1, 2, 300, 160), updated)
+            self.assertEqual([1, 2, 300, 160], payload["regions"][0]["rect"])
+            self.assertEqual((1, 2, 300, 160), service.region_rects()["battle_main"])
+
+    def test_save_round_digit_template_writes_real_digit_template_and_updates_module_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "configs" / "env").mkdir(parents=True, exist_ok=True)
+            (root / "configs" / "accounts").mkdir(parents=True, exist_ok=True)
+            (root / "configs" / "scenarios").mkdir(parents=True, exist_ok=True)
+            (root / "resources" / "templates" / "battle").mkdir(parents=True, exist_ok=True)
+
+            (root / "configs" / "env" / "local.json").write_text(
+                json.dumps(
+                    {
+                        "template_catalog": str(root / "resources" / "templates" / "battle" / "catalog.json"),
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            (root / "resources" / "templates" / "battle" / "catalog.json").write_text(
+                json.dumps({"templates": []}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            (root / "configs" / "accounts" / "instance-1.json").write_text(
+                json.dumps({"instance_id": "instance-1"}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            (root / "configs" / "scenarios" / "battle-basic-validation.json").write_text(
+                json.dumps(
+                    {
+                        "scenario_id": "battle-basic-validation",
+                        "regions": [
+                            {"name": "battle_main", "rect": [0, 0, 180, 120], "use_ocr": True},
+                        ],
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+
+            service = RecognitionWorkbenchService(root)
+            crop_path = (
+                RUNS_ROOT
+                / "artifacts"
+                / "probes"
+                / "recognition-workbench"
+                / "20260401T092306780541Z"
+                / "region-battle_main.png"
+            )
+
+            output_path = service.save_round_digit_template("3", str(crop_path))
+            module_paths = service.template_paths_by_module()
+
+            self.assertTrue(output_path.is_file())
+            self.assertIn(str(output_path), module_paths["battle_round"])
 
 
 if __name__ == "__main__":
