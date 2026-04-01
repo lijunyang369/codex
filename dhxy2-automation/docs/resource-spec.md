@@ -9,7 +9,7 @@
 建议目录结构如下：
 
 ```text
-D:\Codex\dhtxy2-automation
+D:\Codex\dhxy2-automation
 ├─ src
 ├─ resources
 │  ├─ templates

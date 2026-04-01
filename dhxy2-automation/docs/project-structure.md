@@ -2,16 +2,17 @@
 
 ## 1. 文档目的
 
-本文档定义 `D:\Codex\dhtxy2-automation` 的首版项目目录骨架，作为后续实现、协作和评审的统一结构基线。
+本文档定义 `D:\Codex\dhxy2-automation` 的首版项目目录骨架，作为后续实现、协作和评审的统一结构基线。
 
 本目录骨架面向整个《大话西游2》自动化项目，不只服务战斗能力，还为后续任务流、界面识别、账号管理、调度、测试与证据留存预留空间。
 
 ## 2. 推荐目录结构
 
 ```text
-D:\Codex\dhtxy2-automation
+D:\Codex\dhxy2-automation
 ├─ .venv
 ├─ docs
+│  └─ knowledge
 ├─ src
 │  ├─ platform
 │  ├─ perception
@@ -26,6 +27,7 @@ D:\Codex\dhtxy2-automation
 │  ├─ accounts
 │  ├─ characters
 │  ├─ scenarios
+│  ├─ ui
 │  └─ logging
 ├─ resources
 │  ├─ templates
@@ -62,11 +64,18 @@ D:\Codex\dhtxy2-automation
 
 存放架构、规范、状态机、资源组织和实施计划等文档。
 
+其中 `docs/knowledge` 专门承载游戏知识资料，按三层结构组织：
+
+- 页面索引层：定位原始资料页面
+- 逐页摘要层：沉淀页面核心信息
+- 项目规则层：抽取代码和配置可直接消费的规则
+
 要求：
 
 - 文档先行，代码跟随
 - 架构变更优先更新文档基线
 - 其他线程优先读取这里的文档继续协作
+- 游戏知识文档优先沉淀到 `docs/knowledge`
 
 ### `src`
 
@@ -93,6 +102,7 @@ D:\Codex\dhtxy2-automation
 - `accounts`：账号和窗口实例配置
 - `characters`：角色与技能配置
 - `scenarios`：场景或玩法策略配置
+- `ui`：按钮校准和界面定位配置
 - `logging`：日志输出规则配置
 
 ### `resources`

@@ -16,7 +16,7 @@
 
 - 执行环境：Windows
 - Python 版本：3.11.9
-- 虚拟环境：`D:\Codex\dhtxy2-automation\.venv`
+- 虚拟环境：`D:\Codex\dhxy2-automation\.venv`
 - 自动化主技术栈：Airtest + pywin32 + Pillow + OpenCV
 - 已确认核心库导入正常
 - 明确不使用 WSL 作为执行环境

@@ -1,5 +1,6 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -41,16 +42,21 @@ class FakeWindowGateway:
 
 class BootstrapTestCase(unittest.TestCase):
     def test_build_app_from_json_configs(self) -> None:
-        root = Path('D:/Codex/dhxy2-automation')
+        root = Path("D:/Codex/dhxy2-automation")
         with tempfile.TemporaryDirectory() as temp_dir:
-            env_path = Path(temp_dir) / 'local.json'
-            env_path.write_text('{"runs_root": "' + temp_dir.replace('\\', '\\\\') + '", "dry_run": true}', encoding='utf-8')
+            env_path = Path(temp_dir) / "local.json"
+            env_payload = {
+                "runs_root": temp_dir,
+                "dry_run": True,
+                "button_calibration": str(root / "configs" / "ui" / "button-calibration.json"),
+            }
+            env_path.write_text(json.dumps(env_payload, ensure_ascii=False), encoding="utf-8")
 
             app = build_app(
                 BootstrapPaths(
                     env_config=env_path,
-                    account_config=root / 'configs' / 'accounts' / 'instance-1.json',
-                    scenario_config=root / 'configs' / 'scenarios' / 'battle-smoke.json',
+                    account_config=root / "configs" / "accounts" / "instance-1.json",
+                    scenario_config=root / "configs" / "scenarios" / "battle-smoke.json",
                 ),
                 window_session=WindowSession(handle=1001, gateway=FakeWindowGateway()),
                 input_gateway=NoOpInputGateway(),
@@ -58,10 +64,13 @@ class BootstrapTestCase(unittest.TestCase):
 
             result = app.run_once()
 
-            self.assertEqual('instance-1', app._context.instance_id)
+            self.assertEqual("instance-1", app.context.instance_id)
             self.assertEqual(1, len(result.executed_actions))
-            self.assertTrue(app._context.battle_session_id.startswith('battle-smoke'))
+            self.assertTrue(result.observation.battle_ui_visible)
+            self.assertTrue(result.observation.action_prompt_visible)
+            self.assertEqual("CLICK_UI_BUTTON", result.executed_actions[0].action_type)
+            self.assertTrue(app.context.battle_session_id.startswith("battle-smoke"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

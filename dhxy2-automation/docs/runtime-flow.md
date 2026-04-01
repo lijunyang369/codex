@@ -1,268 +1,89 @@
-# ?????2?????????
+# 大话西游2 自动化运行流程
 
-## ????
-
-???????
-
-1. ?????
-2. ???????
-3. ??????????
-
----
-
-## 1. ?????
+## 总体调用链
 
 ```mermaid
 flowchart LR
-    subgraph Entry[???]
-        A["scripts/run_battle_app.py"]
-    end
+    A["scripts/run_battle_app.py"] --> B["app.bootstrap.build_app_from_configs"]
+    B --> C["platform.WindowFinder / WindowSession"]
+    B --> D["app.BattleAutomationApp"]
 
-    subgraph App[?????? app]
-        B["bootstrap.build_app_from_configs()"]
-        C["BattleAutomationApp.run_once()"]
-        D["DefaultObservationProvider.observe()"]
-    end
+    D --> E["app.DefaultObservationProvider.observe"]
+    E --> F["platform.WindowSession.capture_client"]
+    E --> G["perception.TemplateMatcher / OCRReader"]
+    G --> H["perception.ObservationBuilder -> BattleObservation"]
 
-    subgraph Platform[??? platform]
-        E["WindowFinder"]
-        F["WindowSession"]
-        G["PyWin32WindowGateway"]
-    end
+    D --> I["state_machine.BattleStateMachine.tick"]
+    D --> J["policy.FixedRulePolicy.build_plan"]
+    D --> K["executor.ActionExecutor.execute"]
+    K --> L["executor.ActionTranslator"]
+    K --> M["executor.InputGateway"]
 
-    subgraph Perception[??? perception]
-        H["TemplateCatalog"]
-        I["OpenCvTemplateMatcher"]
-        J["OCRReader"]
-        K["ObservationBuilder"]
-    end
-
-    subgraph Domain[??? domain]
-        L["BattleObservation"]
-        M["ActionPlan / AutomationAction"]
-        N["AutomationContext"]
-    end
-
-    subgraph StateMachine[???? state_machine]
-        O["BattleStateMachine"]
-    end
-
-    subgraph Policy[??? policy]
-        P["FixedRulePolicy"]
-    end
-
-    subgraph Executor[??? executor]
-        Q["ActionExecutor"]
-        R["InputGateway"]
-    end
-
-    subgraph Runtime[????? runtime]
-        S["RuntimeSession"]
-        T["Artifacts / Logs"]
-    end
-
-    A --> B --> E --> F --> C
-    E --> G
-    C --> D --> F
-    D --> I
-    D --> J
-    I --> H
-    D --> K --> L
-    C --> O
-    O --> N
-    C --> P --> M
-    C --> Q --> R
-    C --> S --> T
+    D --> N["runtime.RuntimeSession.record_*"]
 ```
 
----
-
-## 2. ???????
+## `run_once()` 时序
 
 ```mermaid
 sequenceDiagram
-    participant Entry as ????
-    participant Bootstrap as bootstrap
-    participant Finder as WindowFinder
-    participant Session as WindowSession
-    participant Provider as ObservationProvider
-    participant Matcher as TemplateMatcher
-    participant OCR as OCRReader
-    participant Builder as ObservationBuilder
-    participant Runtime as RuntimeSession
+    participant App as BattleAutomationApp
+    participant Obs as ObservationProvider
     participant SM as StateMachine
     participant Policy as Policy
-    participant Executor as Executor
-    participant Input as InputGateway
+    participant Exec as Executor
+    participant Runtime as RuntimeSession
 
-    Entry->>Bootstrap: build_app_from_configs(paths)
-    Bootstrap->>Bootstrap: ?? env/account/scenario ??
-    Bootstrap->>Finder: ????
-    Finder->>Session: ?? WindowSession(handle)
-    Bootstrap-->>Entry: ?? BattleAutomationApp
+    App->>Obs: observe(window_session)
+    Obs-->>App: BattleObservation
+    App->>Runtime: record_observation()
 
-    Entry->>Runtime: ???????? RuntimeSession
-    Entry->>Bootstrap: app.run_once()
+    App->>SM: tick(observation, context)
+    SM-->>App: TransitionResult
+    App->>Runtime: record_transition()
 
-    Bootstrap->>Provider: observe(window_session)
-    Provider->>Session: snapshot()
-    Provider->>Session: capture_client()
-    Provider->>Matcher: match(frame, region_name, rect)
-    Provider->>OCR: read_lines(frame, region_name, rect)
-    Provider->>Builder: build(frame, window_info, matches, ocr)
-    Builder-->>Provider: BattleObservation
-    Provider-->>Bootstrap: BattleObservation
+    App->>Policy: build_plan(observation, context)
+    Policy-->>App: ActionPlan
 
-    Bootstrap->>Runtime: record_observation(observation)
-    Bootstrap->>SM: tick(observation, context)
-    SM-->>Bootstrap: TransitionResult
-    Bootstrap->>Runtime: record_transition(transition)
-
-    Bootstrap->>Policy: build_plan(observation, context)
-    Policy-->>Bootstrap: ActionPlan
-
-    alt ????
-        Bootstrap-->>Entry: AppTickResult(???)
-    else ????
-        Bootstrap->>SM: begin_action(plan, context)
-        SM-->>Bootstrap: TransitionResult
-        Bootstrap->>Runtime: record_transition(begin)
-
-        loop ?? AutomationAction
-            Bootstrap->>Runtime: record_action(action, reason)
-            Bootstrap->>Executor: execute(action, window_session, input_gateway)
-            Executor->>Session: focus()
-            Executor->>Input: click / key / wait
-            Executor-->>Bootstrap: ExecutionResult
+    alt plan 为空
+        App-->>App: 返回本轮结果（无动作）
+    else plan 非空
+        App->>SM: begin_action(plan, context)
+        App->>Runtime: record_transition()
+        loop actions
+            App->>Runtime: record_action()
+            App->>Exec: execute(action, window_session, input_gateway)
+            Exec-->>App: ExecutionResult
         end
-
-        Bootstrap->>SM: complete_action(context, accepted_by_ui=True)
-        SM-->>Bootstrap: TransitionResult
-        Bootstrap->>Runtime: record_transition(finish)
-        Bootstrap-->>Entry: AppTickResult
+        App->>SM: complete_action(context, accepted_by_ui=True)
+        App->>Runtime: record_transition()
     end
 ```
 
----
-
-## 2.5 ??????
-
-??????????????????
-
-???
-
-- ???????? `window_focused`
-- ???????????????????
-- ?????????????????
-
-?????
-
-- `configs/env/local.json` ? `require_foreground=true`
-
-???????
-
-- ??????????????????????
-- ????????? `run_once()` ????????
-
----
-
-## 3. run_once ????
-
-```mermaid
-flowchart TD
-    A["run_once ??"] --> B["observe(window)"]
-    B --> C["record_observation"]
-    C --> D["state_machine.tick"]
-    D --> E["record_transition"]
-    E --> F["policy.build_plan"]
-    F --> G{"plan ?????"}
-
-    G -- ? --> H["?? AppTickResult
-???????"]
-
-    G -- ? --> I["state_machine.begin_action"]
-    I --> J["record_transition"]
-    J --> K["?? plan.actions"]
-    K --> L["record_action"]
-    L --> M["executor.execute"]
-    M --> N["state_machine.complete_action"]
-    N --> O["record_transition"]
-    O --> P["?? AppTickResult"]
-```
-
----
-
-## 4. ???????
+## 模板识别链路
 
 ```mermaid
 flowchart LR
-    A["resources/templates/*.png"] --> B["catalog.json"]
-    B --> C["TemplateCatalog"]
-    C --> D["OpenCvTemplateMatcher"]
-    D --> E["MatchResult"]
+    A["resources/templates/battle/*.png"] --> B["catalog.json"]
+    B --> C["perception.TemplateCatalog"]
+    C --> D["perception.OpenCvTemplateMatcher"]
+    D --> E["MatchResult(confidence, bounds)"]
     E --> F["ObservationBuilder"]
     F --> G["BattleObservation"]
-    G --> H["BattleStateMachine"]
+    G --> H["StateMachine / Policy"]
 ```
 
-????
+## 真实点击执行约束（当前阶段）
 
-- ????? `resources`
-- ??????? `perception`
-- ???????? `BattleObservation`
-- ????? `BattleObservation` ??
+1. 涉及真实点击时，默认使用提权环境执行。
+2. 游戏窗口需前台可聚焦，执行前先 `focus_window`。
+3. 非战斗底栏优先使用网格化坐标：`start_x=870, step_x=40, y=792`。
+4. 按钮命中优先走 `button_ref`（来自 `configs/ui/button-calibration.json`），避免硬编码散落坐标。
 
----
+## 关键入口文件
 
-## 5. ?????
-
-?????
-
-- `D:\Codex\dhxy2-automation\scriptsun_battle_app.py`
-
-?????????
-
-- `D:\Codex\dhxy2-automation\srcpp\service.py`
-- `BattleAutomationApp.run_once()`
-
-?????
-
-```powershell
-$env:PYTHONPATH='D:\Codex\dhxy2-automation'
-D:\Codex\dhxy2-automation\.venv\Scripts\python.exe D:\Codex\dhxy2-automation\scriptsun_battle_app.py
-```
-
----
-
-## 6. ????????????
-
-????????
-
-- `D:\Codex\dhxy2-automation\scriptsun_battle_app.py`
-- `D:\Codex\dhxy2-automation\srcppootstrap.py`
-
-????????????????
-
-- `D:\Codex\dhxy2-automation\srcpp\observation_provider.py`
-- `D:\Codex\dhxy2-automation\src\perception\services.py`
-- `D:\Codex\dhxy2-automation\src\perception\observation.py`
-- `D:\Codex\dhxy2-automation\src\state_machine\machine.py`
-
-??????????????
-
-- `D:\Codex\dhxy2-automation\src\policy\planner.py`
-- `D:\Codex\dhxy2-automation\src\executor	ranslator.py`
-- `D:\Codex\dhxy2-automation\src\executor\executor.py`
-
----
-
-## 7. ??????????
-
-```mermaid
-flowchart TD
-    A["????? dry-run"] --> B["????????"]
-    B --> C["???????"]
-    C --> D["??? OCR"]
-    D --> E["????????"]
-    E --> F["?????"]
-```
+- [run_battle_app.py](/D:/Codex/dhxy2-automation/scripts/run_battle_app.py)
+- [bootstrap.py](/D:/Codex/dhxy2-automation/src/app/bootstrap.py)
+- [service.py](/D:/Codex/dhxy2-automation/src/app/service.py)
+- [observation_provider.py](/D:/Codex/dhxy2-automation/src/app/observation_provider.py)
+- [translator.py](/D:/Codex/dhxy2-automation/src/executor/translator.py)
+- [button_calibration.json](/D:/Codex/dhxy2-automation/configs/ui/button-calibration.json)

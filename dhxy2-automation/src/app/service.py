@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from src.domain import ActionPlan, AutomationContext, BattleObservation, TransitionResult
+from src.domain import AutomationContext, BattleObservation, TransitionResult
 from src.executor import ActionExecutor, ExecutionResult, InputGateway
 from src.platform import WindowSession
 from src.policy import FixedRulePolicy
@@ -38,6 +38,14 @@ class BattleAutomationApp:
         self._executor = executor
         self._runtime_session = runtime_session
         self._input_gateway = input_gateway
+
+    @property
+    def context(self) -> AutomationContext:
+        return self._context
+
+    @property
+    def window_session(self) -> WindowSession:
+        return self._window_session
 
     def run_once(self) -> AppTickResult:
         observation = self._observation_provider.observe(self._window_session)

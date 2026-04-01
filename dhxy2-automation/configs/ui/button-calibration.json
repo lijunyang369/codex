@@ -61,13 +61,15 @@
       },
       "task_panel": {
         "label": "任务",
-        "status": "candidate",
-        "point": [1230, 792]
+        "status": "confirmed",
+        "point": [1230, 792],
+        "notes": "confirmed in handoff checklist for nonbattle toolbar"
       },
       "friend_panel": {
         "label": "好友",
-        "status": "candidate",
-        "point": [1270, 792]
+        "status": "confirmed",
+        "point": [1270, 792],
+        "notes": "confirmed by live scan + click probe (toolbar-friend-scan / toolbar-friend-confirm)"
       },
       "guild_panel": {
         "label": "帮派",
@@ -76,22 +78,66 @@
       },
       "system_panel": {
         "label": "系统",
-        "status": "candidate",
-        "point": [1350, 792]
+        "status": "confirmed",
+        "point": [1350, 792],
+        "notes": "confirmed in handoff checklist for nonbattle toolbar"
       }
     }
   },
   "battle_command_bar": {
+    "layout": {
+      "x": 1252,
+      "start_y": 246,
+      "step_y": 51,
+      "notes": "grid inferred from battle command bar anchors: item(297) and defend(348)"
+    },
     "buttons": {
+      "spell": {
+        "label": "法术",
+        "status": "candidate",
+        "point": [1252, 246],
+        "notes": "grid-inferred candidate"
+      },
       "defend": {
         "label": "防御",
-        "status": "pending",
-        "point": [1252, 348]
+        "status": "confirmed",
+        "point": [1252, 348],
+        "notes": "confirmed by live scan + click probe (battle-defend-scan / battle-defend-confirm)"
       },
       "item": {
         "label": "道具",
         "status": "pending",
         "point": [1252, 297]
+      },
+      "protect": {
+        "label": "保护",
+        "status": "candidate",
+        "point": [1252, 399],
+        "notes": "grid-inferred candidate"
+      },
+      "summon": {
+        "label": "召唤",
+        "status": "candidate",
+        "point": [1252, 450],
+        "notes": "grid-inferred candidate"
+      },
+      "recall": {
+        "label": "召还",
+        "status": "candidate",
+        "point": [1252, 501],
+        "notes": "grid-inferred candidate"
+      },
+      "catch": {
+        "label": "捕捉",
+        "status": "candidate",
+        "point": [1252, 552],
+        "notes": "grid-inferred candidate"
+      },
+      "escape": {
+        "label": "逃跑",
+        "status": "candidate",
+        "point": [1252, 603],
+        "notes": "grid-inferred candidate"
       },
       "pet": {
         "label": "宝宝",

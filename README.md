@@ -48,6 +48,18 @@ Web 自动化相关项目目录。
 
 - `D:\Codex\standards\global-coding-standards.md`
 
+### `D:\Codex\shared`
+
+工作区级共享协作区，供多个线程同步背景、决策、审查与交接信息。
+
+用于存放：
+
+- 共享背景
+- 审查索引
+- 决策记录
+- 线程交接材料
+- 协作模板
+
 ### `D:\Codex\downloads`
 
 临时下载区。

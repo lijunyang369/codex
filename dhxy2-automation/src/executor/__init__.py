@@ -4,6 +4,7 @@ from .executor import ActionExecutor
 from .interfaces import InputGateway
 from .models import ExecutionResult, ExecutionStep, StepType
 from .translator import ActionTranslator
+from .win32_input_gateway import Win32SendInputGateway
 
 __all__ = [
     "ActionExecutionError",
@@ -17,4 +18,5 @@ __all__ = [
     "ExecutorError",
     "InputGateway",
     "StepType",
+    "Win32SendInputGateway",
 ]

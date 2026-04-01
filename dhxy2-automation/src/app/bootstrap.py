@@ -18,10 +18,11 @@ from src.perception import (
     StaticTemplateMatcher,
     TemplateCatalog,
 )
-from src.platform import PyWin32WindowGateway, WindowFinder, WindowSearchCriteria, WindowSession
+from src.platform import PyWin32WindowGateway, WindowSession
 from src.policy import FixedActionRule, FixedRulePolicy
 from src.runtime import RuntimeSession
 from src.state_machine import BattleStateMachine
+from src.app.window_binding import resolve_window_session
 
 
 @dataclass(frozen=True)
@@ -117,18 +118,7 @@ def build_app_from_configs(
     input_gateway: InputGateway | None = None,
     gateway: PyWin32WindowGateway | None = None,
 ) -> BattleAutomationApp:
-    loader = JsonConfigLoader()
-    account_config = loader.load(paths.account_config)
-    resolved_gateway = gateway or PyWin32WindowGateway()
-    finder = WindowFinder(resolved_gateway)
-    window_session = finder.find(
-        WindowSearchCriteria(
-            title_contains=account_config.get("window_title"),
-            class_name=account_config.get("window_class"),
-            handle=account_config.get("window_handle"),
-            require_visible=True,
-        )
-    )
+    window_session = resolve_window_session(paths.account_config, gateway=gateway)
     return build_app(paths=paths, window_session=window_session, input_gateway=input_gateway)
 
 

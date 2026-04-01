@@ -2,13 +2,11 @@
   "scenario_id": "battle-smoke",
   "initial_state": "ROUND_ACTIONABLE",
   "primary_rule": {
-    "action_type": "CAST_SKILL",
-    "reason": "fixed_priority_skill",
-    "target": "enemy_front",
+    "action_type": "CLICK_UI_BUTTON",
+    "reason": "fixed_click_defend_button",
+    "target": "battle_command_bar",
     "parameters": {
-      "skill_point": [1095, 724],
-      "target_point": [1035, 442],
-      "confirm_point": [1264, 796]
+      "button_ref": "battle_command_bar.defend"
     }
   },
   "regions": [

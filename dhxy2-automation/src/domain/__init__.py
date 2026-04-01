@@ -1,4 +1,4 @@
-﻿from .battle_models import (
+from .battle_models import (
     ActionPlan,
     ActionType,
     AutomationAction,
@@ -11,6 +11,14 @@
     OCRResult,
     TransitionResult,
 )
+from .profile_models import (
+    CharacterKnowledgeRefs,
+    CharacterProfile,
+    CharacterSystemKnowledge,
+    KnowledgeSource,
+    PetSystemKnowledge,
+    ValidationRule,
+)
 
 __all__ = [
     "ActionPlan",
@@ -19,9 +27,15 @@ __all__ = [
     "AutomationContext",
     "BattleObservation",
     "BattleState",
+    "CharacterKnowledgeRefs",
+    "CharacterProfile",
+    "CharacterSystemKnowledge",
     "DomainError",
     "InvalidStateTransitionError",
+    "KnowledgeSource",
     "MatchResult",
     "OCRResult",
+    "PetSystemKnowledge",
     "TransitionResult",
+    "ValidationRule",
 ]

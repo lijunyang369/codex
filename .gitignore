@@ -44,6 +44,9 @@ Desktop.ini
 .env
 .env.*
 
+# Workspace temp files
+_tmp_*
+
 # Archive / downloads contents should not be versioned by default
 downloads/
 archive/
