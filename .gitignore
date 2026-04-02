@@ -46,6 +46,7 @@ Desktop.ini
 
 # Workspace temp files
 _tmp_*
+/ocr-service/
 
 # Archive / downloads contents should not be versioned by default
 downloads/
