@@ -47,6 +47,7 @@ Desktop.ini
 # Workspace temp files
 _tmp_*
 /ocr-service/
+/dhxy2-automation/
 
 # Archive / downloads contents should not be versioned by default
 downloads/
